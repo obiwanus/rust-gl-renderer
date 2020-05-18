@@ -6,3 +6,5 @@ edition = "2018"
 
 [dependencies]
 sdl2 = { version = "0.34.0", features = ["bundled"] }
+gl = { path = "lib/gl" }
+nalgebra-glm = "0.7.0"
