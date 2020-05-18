@@ -1,0 +1,301 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"expo",
+				"explosion_end"
+			],
+			[
+				"ex",
+				"explosion_start"
+			],
+			[
+				"e",
+				"explosion_end"
+			],
+			[
+				"va",
+				"Vasia"
+			],
+			[
+				"ar",
+				"argv"
+			],
+			[
+				"vector",
+				"vector\tstandard header"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"ui",
+				"UI: Select Theme"
+			],
+			[
+				"color",
+				"UI: Select Color Scheme"
+			],
+			[
+				"pref",
+				"Preferences: Settings"
+			],
+			[
+				"brow",
+				"Preferences: Browse Packages"
+			],
+			[
+				"sync",
+				"Set Syntax: C"
+			],
+			[
+				"ins",
+				"Package Control: Install Package"
+			],
+			[
+				"synjavasc",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"synjavas",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"synj",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"synmake",
+				"Set Syntax: Makefile"
+			],
+			[
+				"brop",
+				"Preferences: Browse Packages"
+			],
+			[
+				"preke",
+				"Preferences: Key Bindings"
+			],
+			[
+				"uicol",
+				"UI: Select Color Scheme"
+			],
+			[
+				"insp",
+				"Package Control: Install Package"
+			],
+			[
+				"uiseleco",
+				"UI: Select Color Scheme"
+			],
+			[
+				"pre",
+				"Preferences: Settings"
+			],
+			[
+				"prefse",
+				"Preferences: Package Control Settings – User"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/C/Users/Ivan-Zenbook-Pro/Projects/game2"
+	],
+	"file_history":
+	[
+		"/C/Users/Ivan-Zenbook-Pro/Projects/rxv6/xv6/bootmain.c",
+		"/C/Users/Ivan-Zenbook-Pro/Projects/rxv6/xv6/asm.h",
+		"/C/Users/Ivan-Zenbook-Pro/Projects/rxv6/xv6/swtch.S",
+		"/C/Users/Ivan-Zenbook-Pro/Projects/rxv6/xv6/Makefile",
+		"/C/Users/Ivan-Zenbook-Pro/Projects/rxv6/xv6/param.h",
+		"/C/Users/Ivan-Zenbook-Pro/Projects/rxv6/xv6/proc.h",
+		"/C/Users/Ivan-Zenbook-Pro/Downloads/bd.js",
+		"/C/Users/Ivan-Zenbook-Pro/Projects/rxv6/xv6/main.c",
+		"/C/Users/Ivan-Zenbook-Pro/Projects/rxv6/xv6/proc.c",
+		"/C/Users/Ivan-Zenbook-Pro/Projects/rxv6/xv6/bootasm.S",
+		"/C/Users/Ivan-Zenbook-Pro/Projects/rxv6/rxv6.sublime-project",
+		"/C/Users/Ivan-Zenbook-Pro/AppData/Roaming/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/C/Users/Ivan-Zenbook-Pro/AppData/Roaming/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
+		"/C/Users/Ivan-Zenbook-Pro/AppData/Roaming/Sublime Text 3/Packages/User/Default (Windows).sublime-keymap",
+		"/C/Users/Ivan-Zenbook-Pro/AppData/Roaming/Sublime Text 3/Packages/User/Package Control.sublime-settings",
+		"/C/Users/Ivan-Zenbook-Pro/Projects/praxis/raytracer2/sphere.h",
+		"/C/Users/Ivan-Zenbook-Pro/Projects/praxis/raytracer2/camera.h"
+	],
+	"find":
+	{
+		"height": 32.0
+	},
+	"find_in_files":
+	{
+		"height": 679.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 32.0
+	},
+	"input":
+	{
+		"height": 229.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "game2.sublime-project",
+	"replace":
+	{
+		"height": 60.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"ma",
+				"xv6\\Makefile"
+			],
+			[
+				"make",
+				"xv6\\Makefile"
+			],
+			[
+				"main",
+				"xv6\\main.c"
+			],
+			[
+				"stw",
+				"xv6\\swtch.S"
+			],
+			[
+				"boom",
+				"xv6\\bootmain.c"
+			],
+			[
+				"boo",
+				"xv6\\bootasm.S"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": false,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 249.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
