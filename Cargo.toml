@@ -8,3 +8,5 @@ edition = "2018"
 sdl2 = { version = "0.34.0", features = ["bundled"] }
 gl = { path = "lib/gl" }
 nalgebra-glm = "0.7.0"
+stb_image = "0.2.2"
+thiserror = "1.0.18"
