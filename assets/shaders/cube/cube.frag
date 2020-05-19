@@ -40,8 +40,7 @@ struct PointLight {
 
 uniform Material material;
 uniform DirectionalLight directional_light;
-#define NUM_POINT_LIGHTS 4
-uniform PointLight point_lights[NUM_POINT_LIGHTS];
+uniform PointLight light;
 
 vec3 calc_directional_light(DirectionalLight light, vec3 normal,
                             vec3 view_direction, MaterialColor mat_color)
@@ -98,10 +97,8 @@ void main() {
     // Directional light
     // result_color += calc_directional_light(directional_light, normal, view_direction, mat_color);
 
-    // Point lights
-    for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
-        result_color += calc_point_light(point_lights[i], normal, IN.frag_pos, view_direction, mat_color);
-    }
+    // Point light
+    result_color += calc_point_light(light, normal, IN.frag_pos, view_direction, mat_color);
 
     Color = vec4(result_color, 1.0);
 }

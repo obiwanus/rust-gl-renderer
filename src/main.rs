@@ -2,7 +2,9 @@
 
 extern crate nalgebra_glm as glm;
 
+mod buffers;
 mod camera;
+mod shader;
 mod texture;
 
 // ==================================== Imports ==================================================
@@ -11,14 +13,15 @@ use std::error::Error;
 use std::f32::consts::PI;
 use std::time::SystemTime;
 
-use gl;
-use sdl2;
+use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 
 use camera::Camera;
 use camera::Movement::*;
-
+use shader::Program;
 use texture::Texture;
+
+use buffers::{VertexArray, VertexBuffer};
 
 // ==================================== Functions ================================================
 
@@ -50,7 +53,8 @@ fn run() -> Result<(), Box<dyn Error>> {
     sdl.mouse().set_relative_mouse_mode(true);
 
     // Set up OpenGL
-    let _gl_context = window.gl_create_context()?;
+    let gl_context = window.gl_create_context()?;
+    window.gl_make_current(&gl_context)?;
     gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
     unsafe {
         gl::Viewport(0, 0, window_width as i32, window_height as i32);
@@ -123,6 +127,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         glm::vec3(-1.3, 1.0, -1.5),
     ];
     let cube_model_transform = glm::rotation(-0.25 * PI, &glm::vec3(0.0, 0.0, 1.0));
+    let light_pos = glm::vec3(-0.7, 0.2, 2.0);
+    let light_color = glm::vec3(1.0, 1.0, 1.0);
 
     // Cube textures
     let cube_texture = Texture::new()
@@ -131,6 +137,29 @@ fn run() -> Result<(), Box<dyn Error>> {
     let cube_specular_map = Texture::new()
         .set_default_parameters()
         .load_image("assets/textures/crate/specular.png")?;
+
+    // Cube buffers
+    let stride = 8;
+    let mut cube = VertexBuffer::new();
+    cube.bind();
+    cube.set_static_data(&cube_vertices, stride);
+    let cube_vao = VertexArray::new();
+    cube_vao.bind();
+    cube_vao.set_attrib(0, 3, stride, 0); // positions
+    cube_vao.set_attrib(1, 2, stride, 3); // texture coords
+    cube_vao.set_attrib(2, 3, stride, 5); // normals
+    cube.unbind();
+
+    // Cube shaders
+    let cube_shader = Program::new()
+        .vertex_shader("assets/shaders/cube/cube.vert")?
+        .fragment_shader("assets/shaders/cube/cube.frag")?
+        .link()?;
+    cube_shader.set_used();
+    // Set default material
+    cube_shader.set_texture_unit("material.diffuse", 0)?;
+    cube_shader.set_texture_unit("material.specular", 1)?;
+    cube_shader.set_float("material.shininess", 32.0)?;
 
     // Main loop
     let mut frame_start = SystemTime::now();
@@ -143,7 +172,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         // General events
         for event in event_pump.poll_iter() {
             match event {
-                sdl2::event::Event::Quit { .. } => break 'main,
+                Event::Quit { .. } => break 'main,
+                Event::MouseWheel { y, .. } => camera.adjust_zoom(y),
                 _ => {}
             }
         }
@@ -170,12 +200,33 @@ fn run() -> Result<(), Box<dyn Error>> {
             camera.go(Right, delta_time);
         }
 
-        // unsafe {
-        //     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        // }
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
 
         let proj = camera.get_projection_matrix();
         let view = camera.get_view_matrix();
+
+        // Cube transforms
+        cube_shader.set_used();
+        cube_shader.set_mat4("proj", &proj)?;
+        cube_shader.set_mat4("view", &view)?;
+        cube_shader.set_mat4("model", &cube_model_transform)?;
+
+        // Lights
+        let p = light_pos;
+        let light_pos = glm::vec4_to_vec3(&(view * glm::vec4(p.x, p.y, p.z, 1.0)));
+        cube_shader.set_vec3("light.position", &light_pos)?;
+        cube_shader.set_vec3("light.ambient", &(0.2f32 * light_color))?;
+        cube_shader.set_vec3("light.diffuse", &(0.5f32 * light_color))?;
+        cube_shader.set_vec3("light.specular", &(1.0f32 * light_color))?;
+        cube_shader.set_float("light.attn_linear", 0.09)?;
+        cube_shader.set_float("light.attn_quadratic", 0.032)?;
+
+        cube_vao.bind();
+        cube.draw_triangles();
+
+        window.gl_swap_window();
     }
 
     Ok(())
