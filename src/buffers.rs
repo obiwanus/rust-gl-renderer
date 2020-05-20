@@ -78,7 +78,7 @@ impl ElementBuffer {
     }
 
     pub fn set_static_data(&mut self, data: &[u32], stride: usize) {
-        self.num_elements = data.len() / stride;
+        self.num_elements = data.len();
         unsafe {
             gl::BufferData(
                 gl::ELEMENT_ARRAY_BUFFER,

@@ -11,6 +11,7 @@ mod texture;
 
 use std::error::Error;
 use std::f32::consts::PI;
+use std::slice::Chunks;
 use std::time::SystemTime;
 
 use sdl2::event::Event;
@@ -74,27 +75,6 @@ impl From<tobj::Model> for Model {
     }
 }
 
-// let mut model_pos_vbo = VertexBuffer::new();
-// let mut model_norm_vbo = VertexBuffer::new();
-// let mut model_ebo = ElementBuffer::new();
-// let model_vao = VertexArray::new();
-
-// model_vao.bind(); // start
-
-// // Send vertex data
-// model_pos_vbo.bind();
-// model_pos_vbo.set_static_data(&model.mesh.positions, 3);
-// model_vao.set_attrib(0, 3, 3, 0);
-// model_norm_vbo.bind();
-// model_norm_vbo.set_static_data(&model.mesh.normals, 3);
-// model_vao.set_attrib(1, 3, 3, 0);
-
-// // Send indices
-// model_ebo.bind();
-// model_ebo.set_static_data(&model.mesh.indices, 3);
-
-// model_vao.unbind(); // done
-
 // ==================================== Functions ================================================
 
 fn main() {
@@ -118,7 +98,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let window = video_subsystem
         .window("Game 2", 1024, 768)
         .opengl()
-        // .fullscreen_desktop()
+        .fullscreen_desktop()
         .build()?;
     let (window_width, window_height) = window.size();
 
@@ -160,10 +140,6 @@ fn run() -> Result<(), Box<dyn Error>> {
 
     // Brute force approach
     let models: Vec<Model> = models.into_iter().map(Model::from).collect();
-
-    // for model in models {
-
-    // }
 
     // Main loop
     let mut frame_start = SystemTime::now();
@@ -224,7 +200,6 @@ fn run() -> Result<(), Box<dyn Error>> {
             flatcolor_shader.set_mat4("model", &glm::identity())?;
 
             let material = &materials[model.material_id];
-            flatcolor_shader.set_float3("material.ambient", &material.ambient)?;
             flatcolor_shader.set_float3("material.diffuse", &material.diffuse)?;
             flatcolor_shader.set_float3("material.specular", &material.specular)?;
             flatcolor_shader.set_float("material.shininess", material.shininess)?;
