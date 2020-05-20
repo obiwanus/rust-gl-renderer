@@ -108,6 +108,7 @@ dependencies = [
  "sdl2",
  "stb_image",
  "thiserror",
+ "tobj",
 ]
 
 [[package]]
@@ -513,6 +514,12 @@ checksum = "d40c6d1b69745a6ec6fb1ca717914848da4b44ae29d9b3080cbee91d72a69b14"
 dependencies = [
  "lazy_static",
 ]
+
+[[package]]
+name = "tobj"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42748fb67ae45bff1caad8ff18de46f85347b8e14caf2a29fa6b12d741e15fdb"
 
 [[package]]
 name = "typenum"

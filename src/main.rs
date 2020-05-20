@@ -16,12 +16,84 @@ use std::time::SystemTime;
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 
+// Local imports
 use camera::Camera;
 use camera::Movement::*;
 use shader::Program;
 use texture::Texture;
 
-use buffers::{VertexArray, VertexBuffer};
+use buffers::{ElementBuffer, VertexArray, VertexBuffer};
+
+// ==================================== Types =================================================
+
+// @TMP
+struct Model {
+    positions: VertexBuffer,
+    normals: VertexBuffer,
+    elements: ElementBuffer,
+    vao: VertexArray,
+
+    material_id: usize,
+}
+
+impl Model {
+    pub fn new() -> Self {
+        Model {
+            positions: VertexBuffer::new(),
+            normals: VertexBuffer::new(),
+            elements: ElementBuffer::new(),
+            vao: VertexArray::new(),
+            material_id: 0,
+        }
+    }
+}
+
+impl From<tobj::Model> for Model {
+    fn from(src: tobj::Model) -> Self {
+        let mut model = Model::new();
+
+        model.material_id = src.mesh.material_id.unwrap();
+
+        model.vao.bind();
+
+        // Send vertex data
+        model.positions.bind();
+        model.positions.set_static_data(&src.mesh.positions, 3);
+        model.vao.set_attrib(0, 3, 3, 0);
+        model.normals.bind();
+        model.normals.set_static_data(&src.mesh.normals, 3);
+        model.vao.set_attrib(1, 3, 3, 0);
+
+        // Send indices
+        model.elements.bind();
+        model.elements.set_static_data(&src.mesh.indices, 3);
+
+        model.vao.unbind();
+
+        model
+    }
+}
+
+// let mut model_pos_vbo = VertexBuffer::new();
+// let mut model_norm_vbo = VertexBuffer::new();
+// let mut model_ebo = ElementBuffer::new();
+// let model_vao = VertexArray::new();
+
+// model_vao.bind(); // start
+
+// // Send vertex data
+// model_pos_vbo.bind();
+// model_pos_vbo.set_static_data(&model.mesh.positions, 3);
+// model_vao.set_attrib(0, 3, 3, 0);
+// model_norm_vbo.bind();
+// model_norm_vbo.set_static_data(&model.mesh.normals, 3);
+// model_vao.set_attrib(1, 3, 3, 0);
+
+// // Send indices
+// model_ebo.bind();
+// model_ebo.set_static_data(&model.mesh.indices, 3);
+
+// model_vao.unbind(); // done
 
 // ==================================== Functions ================================================
 
@@ -68,98 +140,30 @@ fn run() -> Result<(), Box<dyn Error>> {
     camera.position = glm::vec3(0.0, 2.0, 5.0);
     camera.look_at(glm::vec3(0.0, 2.0, 0.0));
 
-    // TMP Cube
-    #[rustfmt::skip]
-    let cube_vertices: Vec<f32> = vec![
-        // positions        // tex coords   // normals
-        0.5, 0.5, 0.5,      1.0, 1.0,       0.0, 0.0, 1.0,      // 0
-        0.5, -0.5, 0.5,     1.0, 0.0,       0.0, 0.0, 1.0,      // 1
-       -0.5, 0.5, 0.5,      0.0, 1.0,       0.0, 0.0, 1.0,      // 3
-        0.5, -0.5, 0.5,     1.0, 0.0,       0.0, 0.0, 1.0,      // 1
-       -0.5, -0.5, 0.5,     0.0, 0.0,       0.0, 0.0, 1.0,      // 2
-       -0.5, 0.5, 0.5,      0.0, 1.0,       0.0, 0.0, 1.0,      // 3
-
-       -0.5, 0.5, -0.5,     1.0, 1.0,       0.0, 0.0, -1.0,     // 7
-        0.5, 0.5, -0.5,     1.0, 0.0,       0.0, 0.0, -1.0,     // 4
-       -0.5, -0.5, -0.5,    0.0, 1.0,       0.0, 0.0, -1.0,     // 6
-       -0.5, -0.5, -0.5,    1.0, 0.0,       0.0, 0.0, -1.0,     // 6
-        0.5, -0.5, -0.5,    0.0, 0.0,       0.0, 0.0, -1.0,     // 5
-        0.5, 0.5, -0.5,     0.0, 1.0,       0.0, 0.0, -1.0,     // 4
-
-        0.5, 0.5, -0.5,     1.0, 1.0,       1.0, 0.0, 0.0,      // 4
-        0.5, -0.5, -0.5,    1.0, 0.0,       1.0, 0.0, 0.0,      // 5
-        0.5, 0.5, 0.5,      0.0, 1.0,       1.0, 0.0, 0.0,      // 0
-        0.5, -0.5, -0.5,    1.0, 0.0,       1.0, 0.0, 0.0,      // 5
-        0.5, -0.5, 0.5,     0.0, 0.0,       1.0, 0.0, 0.0,      // 1
-        0.5, 0.5, 0.5,      0.0, 1.0,       1.0, 0.0, 0.0,      // 0
-
-       -0.5, 0.5, 0.5,      1.0, 1.0,      -1.0, 0.0, 0.0,      // 3
-       -0.5, -0.5, 0.5,     1.0, 0.0,      -1.0, 0.0, 0.0,      // 2
-       -0.5, 0.5, -0.5,     0.0, 1.0,      -1.0, 0.0, 0.0,      // 7
-       -0.5, -0.5, 0.5,     1.0, 0.0,      -1.0, 0.0, 0.0,      // 2
-       -0.5, -0.5, -0.5,    0.0, 0.0,      -1.0, 0.0, 0.0,      // 6
-       -0.5, 0.5, -0.5,     0.0, 1.0,      -1.0, 0.0, 0.0,      // 7
-
-        0.5, 0.5, -0.5,     1.0, 1.0,       0.0, 1.0, 0.0,      // 4
-        0.5, 0.5, 0.5,      1.0, 0.0,       0.0, 1.0, 0.0,      // 0
-       -0.5, 0.5, -0.5,     0.0, 1.0,       0.0, 1.0, 0.0,      // 7
-        0.5, 0.5, 0.5,      1.0, 0.0,       0.0, 1.0, 0.0,      // 0
-       -0.5, 0.5, 0.5,      0.0, 0.0,       0.0, 1.0, 0.0,      // 3
-       -0.5, 0.5, -0.5,     0.0, 1.0,       0.0, 1.0, 0.0,      // 7
-
-        0.5, -0.5, 0.5,     1.0, 1.0,       0.0, -1.0, 0.0,     // 1
-        0.5, -0.5, -0.5,    1.0, 0.0,       0.0, -1.0, 0.0,     // 5
-       -0.5, -0.5, 0.5,     0.0, 1.0,       0.0, -1.0, 0.0,     // 2
-        0.5, -0.5, -0.5,    1.0, 0.0,       0.0, -1.0, 0.0,     // 5
-       -0.5, -0.5, -0.5,    0.0, 0.0,       0.0, -1.0, 0.0,     // 6
-       -0.5, -0.5, 0.5,     0.0, 1.0,       0.0, -1.0, 0.0,     // 2
-    ];
-    let cube_positions = vec![
-        glm::vec3(0.0, 0.0, 0.0),
-        glm::vec3(2.0, 5.0, -15.0),
-        glm::vec3(-1.5, -2.2, -2.5),
-        glm::vec3(-3.8, -2.0, -12.3),
-        glm::vec3(2.4, -0.4, -3.5),
-        glm::vec3(-1.7, 3.0, -7.5),
-        glm::vec3(1.3, -2.0, -2.5),
-        glm::vec3(1.5, 2.0, -2.5),
-        glm::vec3(1.5, 0.2, -1.5),
-        glm::vec3(-1.3, 1.0, -1.5),
-    ];
-    let cube_model_transform = glm::rotation(-0.25 * PI, &glm::vec3(0.0, 0.0, 1.0));
     let light_pos = glm::vec3(-0.7, 0.2, 2.0);
     let light_color = glm::vec3(1.0, 1.0, 1.0);
 
-    // Cube textures
-    let cube_texture = Texture::new()
-        .set_default_parameters()
-        .load_image("assets/textures/crate/diffuse.png")?;
-    let cube_specular_map = Texture::new()
-        .set_default_parameters()
-        .load_image("assets/textures/crate/specular.png")?;
-
-    // Cube buffers
-    let stride = 8;
-    let mut cube = VertexBuffer::new();
-    cube.bind();
-    cube.set_static_data(&cube_vertices, stride);
-    let cube_vao = VertexArray::new();
-    cube_vao.bind();
-    cube_vao.set_attrib(0, 3, stride, 0); // positions
-    cube_vao.set_attrib(1, 2, stride, 3); // texture coords
-    cube_vao.set_attrib(2, 3, stride, 5); // normals
-    cube.unbind();
-
-    // Cube shaders
-    let cube_shader = Program::new()
-        .vertex_shader("assets/shaders/cube/cube.vert")?
-        .fragment_shader("assets/shaders/cube/cube.frag")?
+    // Flat color shader
+    let flatcolor_shader = Program::new()
+        .vertex_shader("assets/shaders/flatcolor/flatcolor.vert")?
+        .fragment_shader("assets/shaders/flatcolor/flatcolor.frag")?
         .link()?;
-    cube_shader.set_used();
-    // Set default material
-    cube_shader.set_texture_unit("material.diffuse", 0)?;
-    cube_shader.set_texture_unit("material.specular", 1)?;
-    cube_shader.set_float("material.shininess", 32.0)?;
+    flatcolor_shader.set_used();
+    flatcolor_shader.set_vec3("point_light.ambient", &(0.2f32 * light_color))?;
+    flatcolor_shader.set_vec3("point_light.diffuse", &(0.5f32 * light_color))?;
+    flatcolor_shader.set_vec3("point_light.specular", &(1.0f32 * light_color))?;
+    flatcolor_shader.set_float("point_light.attn_linear", 0.09)?;
+    flatcolor_shader.set_float("point_light.attn_quadratic", 0.032)?;
+
+    // Load model
+    let (models, materials) = tobj::load_obj("assets/models/culdesac/culdesac.obj", true)?;
+
+    // Brute force approach
+    let models: Vec<Model> = models.into_iter().map(Model::from).collect();
+
+    // for model in models {
+
+    // }
 
     // Main loop
     let mut frame_start = SystemTime::now();
@@ -207,24 +211,34 @@ fn run() -> Result<(), Box<dyn Error>> {
         let proj = camera.get_projection_matrix();
         let view = camera.get_view_matrix();
 
-        // Cube transforms
-        cube_shader.set_used();
-        cube_shader.set_mat4("proj", &proj)?;
-        cube_shader.set_mat4("view", &view)?;
-        cube_shader.set_mat4("model", &cube_model_transform)?;
+        // Set transforms
+        flatcolor_shader.set_mat4("proj", &proj)?;
+        flatcolor_shader.set_mat4("view", &view)?;
 
-        // Lights
+        // Light
         let p = light_pos;
         let light_pos = glm::vec4_to_vec3(&(view * glm::vec4(p.x, p.y, p.z, 1.0)));
-        cube_shader.set_vec3("light.position", &light_pos)?;
-        cube_shader.set_vec3("light.ambient", &(0.2f32 * light_color))?;
-        cube_shader.set_vec3("light.diffuse", &(0.5f32 * light_color))?;
-        cube_shader.set_vec3("light.specular", &(1.0f32 * light_color))?;
-        cube_shader.set_float("light.attn_linear", 0.09)?;
-        cube_shader.set_float("light.attn_quadratic", 0.032)?;
+        flatcolor_shader.set_vec3("point_light.position", &light_pos)?;
 
-        cube_vao.bind();
-        cube.draw_triangles();
+        for model in models.iter() {
+            flatcolor_shader.set_mat4("model", &glm::identity())?;
+
+            let material = &materials[model.material_id];
+            flatcolor_shader.set_float3("material.ambient", &material.ambient)?;
+            flatcolor_shader.set_float3("material.diffuse", &material.diffuse)?;
+            flatcolor_shader.set_float3("material.specular", &material.specular)?;
+            flatcolor_shader.set_float("material.shininess", material.shininess)?;
+
+            model.vao.bind();
+            model.elements.draw_triangles();
+        }
+
+        // ==================================== TODO =================================================
+        // - Check why colors aren't shown
+        // - Fix model loading
+
+        // cube_vao.bind();
+        // cube.draw_triangles();
 
         window.gl_swap_window();
     }

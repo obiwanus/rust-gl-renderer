@@ -10,3 +10,4 @@ gl = { path = "lib/gl" }
 nalgebra-glm = "0.7.0"
 stb_image = "0.2.2"
 thiserror = "1.0.18"
+tobj = "2.0.0"

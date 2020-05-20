@@ -110,6 +110,15 @@ impl Program {
         Ok(())
     }
 
+    /// Sets a [f32; 3] uniform
+    pub fn set_float3(&self, name: &str, vec: &[f32]) -> Result<()> {
+        let location = self.get_uniform_location(name)?;
+        unsafe {
+            gl::Uniform3fv(location, 1, vec.as_ptr());
+        }
+        Ok(())
+    }
+
     /// Sets a mat4 uniform
     pub fn set_mat4(&self, name: &str, mat: &Mat4) -> Result<()> {
         let location = self.get_uniform_location(name)?;

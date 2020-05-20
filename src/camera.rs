@@ -43,8 +43,8 @@ impl Camera {
             yaw: 0.0,
             pitch: 0.0,
 
-            movement_speed: 6.0,
-            sensitivity: 0.002,
+            movement_speed: 4.0,
+            sensitivity: 0.0015,
             zoom: ZOOM_MIN,
             aspect_ratio: 4.0 / 3.0,
         }

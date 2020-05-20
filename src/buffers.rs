@@ -31,7 +31,7 @@ impl VertexBuffer {
         }
     }
 
-    pub fn set_static_data(&mut self, vertex_data: &Vec<f32>, stride: usize) {
+    pub fn set_static_data(&mut self, vertex_data: &[f32], stride: usize) {
         self.num_vertices = vertex_data.len() / stride;
         unsafe {
             gl::BufferData(
@@ -77,7 +77,7 @@ impl ElementBuffer {
         }
     }
 
-    pub fn set_static_data(&mut self, data: &Vec<u32>, stride: usize) {
+    pub fn set_static_data(&mut self, data: &[u32], stride: usize) {
         self.num_elements = data.len() / stride;
         unsafe {
             gl::BufferData(
