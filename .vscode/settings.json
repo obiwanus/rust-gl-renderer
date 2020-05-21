@@ -1,6 +1,0 @@
-{
-    "rust-client.engine": "rust-analyzer",
-    "rust.all_features": true,
-    "rust.clippy_preference": "on",
-    "editor.formatOnSave": true
-}

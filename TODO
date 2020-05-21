@@ -1,0 +1,17 @@
+TODO:
+- Load the culdesac model using glTF
+- Make a starry night skybox
+- Implement a direct light (from the moon)
+- Draw shadows
+= Make a police car light animation
+
+DONE:
+
+21/05/2020
+- Read about gltf format and brushed up on Rust refs
+
+20/05/2020
+- Loaded the culdesac model from obj and rendered as is with one light
+
+19/05/2020
+- Rewrote the code previously used for boulder-dash experiments

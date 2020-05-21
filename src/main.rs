@@ -1,4 +1,4 @@
-// ==================================== Crates and modules =======================================
+// ==================================== Crates and modules ========================================
 
 extern crate nalgebra_glm as glm;
 
@@ -7,15 +7,18 @@ mod camera;
 mod shader;
 mod texture;
 
-// ==================================== Imports ==================================================
+// ==================================== Imports ===================================================
 
 use std::error::Error;
 use std::f32::consts::PI;
-use std::slice::Chunks;
 use std::time::SystemTime;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
+
+use gl::types::*;
+use gltf::scene::Node;
+use gltf::{Material, Mesh};
 
 // Local imports
 use camera::Camera;
@@ -25,57 +28,47 @@ use texture::Texture;
 
 use buffers::{ElementBuffer, VertexArray, VertexBuffer};
 
-// ==================================== Types =================================================
+// ==================================== Types =====================================================
 
-// @TMP
-struct Model {
-    positions: VertexBuffer,
-    normals: VertexBuffer,
-    elements: ElementBuffer,
-    vao: VertexArray,
+// impl Model {
+//     pub fn new() -> Self {
+//         Model {
+//             positions: VertexBuffer::new(),
+//             normals: VertexBuffer::new(),
+//             elements: ElementBuffer::new(),
+//             vao: VertexArray::new(),
+//             material_id: 0,
+//         }
+//     }
+// }
 
-    material_id: usize,
-}
+// impl From<tobj::Model> for Model {
+//     fn from(src: tobj::Model) -> Self {
+//         let mut model = Model::new();
 
-impl Model {
-    pub fn new() -> Self {
-        Model {
-            positions: VertexBuffer::new(),
-            normals: VertexBuffer::new(),
-            elements: ElementBuffer::new(),
-            vao: VertexArray::new(),
-            material_id: 0,
-        }
-    }
-}
+//         model.material_id = src.mesh.material_id.unwrap();
 
-impl From<tobj::Model> for Model {
-    fn from(src: tobj::Model) -> Self {
-        let mut model = Model::new();
+//         model.vao.bind();
 
-        model.material_id = src.mesh.material_id.unwrap();
+//         // Send vertex data
+//         model.positions.bind();
+//         model.positions.set_static_data(&src.mesh.positions, 3);
+//         model.vao.set_attrib(0, 3, 3, 0);
+//         model.normals.bind();
+//         model.normals.set_static_data(&src.mesh.normals, 3);
+//         model.vao.set_attrib(1, 3, 3, 0);
 
-        model.vao.bind();
+//         // Send indices
+//         model.elements.bind();
+//         model.elements.set_static_data(&src.mesh.indices, 3);
 
-        // Send vertex data
-        model.positions.bind();
-        model.positions.set_static_data(&src.mesh.positions, 3);
-        model.vao.set_attrib(0, 3, 3, 0);
-        model.normals.bind();
-        model.normals.set_static_data(&src.mesh.normals, 3);
-        model.vao.set_attrib(1, 3, 3, 0);
+//         model.vao.unbind();
 
-        // Send indices
-        model.elements.bind();
-        model.elements.set_static_data(&src.mesh.indices, 3);
+//         model
+//     }
+// }
 
-        model.vao.unbind();
-
-        model
-    }
-}
-
-// ==================================== Functions ================================================
+// ==================================== Functions =================================================
 
 fn main() {
     if let Err(error) = run() {
@@ -136,10 +129,27 @@ fn run() -> Result<(), Box<dyn Error>> {
     flatcolor_shader.set_float("point_light.attn_quadratic", 0.032)?;
 
     // Load model
-    let (models, materials) = tobj::load_obj("assets/models/culdesac/culdesac.obj", true)?;
+    let (document, buffers, _images) = gltf::import("assets/models/culdesac/culdesac.glb")?;
 
-    // Brute force approach
-    let models: Vec<Model> = models.into_iter().map(Model::from).collect();
+    // Define opengl buffers
+    assert_eq!(document.buffers().len(), 1);
+    let buffer = document.buffers().next().unwrap();
+    let mut buffer_id: GLuint = 0;
+    unsafe {
+        gl::GenBuffers(1, &mut buffer_id);
+        gl::BindBuffer(gl::ARRAY_BUFFER, buffer_id);
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            buffer.length() as isize,
+            buffers[0].as_ptr() as *const GLvoid,
+            gl::STATIC_DRAW,
+        );
+    }
+
+    assert_eq!(document.scenes().len(), 1);
+    let scene = document.scenes().next().unwrap();
+
+    let models: Vec<Model> = scene.nodes().map(Into::into).collect();
 
     // Main loop
     let mut frame_start = SystemTime::now();
@@ -196,24 +206,17 @@ fn run() -> Result<(), Box<dyn Error>> {
         let light_pos = glm::vec4_to_vec3(&(view * glm::vec4(p.x, p.y, p.z, 1.0)));
         flatcolor_shader.set_vec3("point_light.position", &light_pos)?;
 
-        for model in models.iter() {
-            flatcolor_shader.set_mat4("model", &glm::identity())?;
+        // for model in models.iter() {
+        //     flatcolor_shader.set_mat4("model", &glm::identity())?;
 
-            let material = &materials[model.material_id];
-            flatcolor_shader.set_float3("material.diffuse", &material.diffuse)?;
-            flatcolor_shader.set_float3("material.specular", &material.specular)?;
-            flatcolor_shader.set_float("material.shininess", material.shininess)?;
+        //     let material = &materials[model.material_id];
+        //     flatcolor_shader.set_float3("material.diffuse", &material.diffuse)?;
+        //     flatcolor_shader.set_float3("material.specular", &material.specular)?;
+        //     flatcolor_shader.set_float("material.shininess", material.shininess)?;
 
-            model.vao.bind();
-            model.elements.draw_triangles();
-        }
-
-        // ==================================== TODO =================================================
-        // - Check why colors aren't shown
-        // - Fix model loading
-
-        // cube_vao.bind();
-        // cube.draw_triangles();
+        //     model.vao.bind();
+        //     model.elements.draw_triangles();
+        // }
 
         window.gl_swap_window();
     }
