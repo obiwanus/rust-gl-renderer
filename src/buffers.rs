@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use gl::types::*;
+use gltf::scene::Node;
 
 pub struct VertexBuffer {
     id: GLuint,
@@ -77,7 +78,7 @@ impl ElementBuffer {
         }
     }
 
-    pub fn set_static_data(&mut self, data: &[u32], stride: usize) {
+    pub fn set_static_data(&mut self, data: &[u32]) {
         self.num_elements = data.len();
         unsafe {
             gl::BufferData(
@@ -129,18 +130,71 @@ impl VertexArray {
             gl::BindVertexArray(0);
         }
     }
+}
 
-    pub fn set_attrib(&self, location: u32, count: i32, stride: usize, offset: usize) {
+use gltf::Semantic::*;
+
+pub struct Model {
+    pub vao: VertexArray,
+    pub transform: [[f32; 4]; 4],
+
+    num_elements: usize,
+    buffer_offset: usize,
+}
+
+impl Model {
+    pub fn from(node: Node) -> Option<Self> {
+        let mesh = node.mesh()?; // not all nodes have meshes
+
+        // @notimplemented: more than one primitive
+        let primitive = mesh.primitives().next().unwrap();
+        let num_elements = primitive.indices().unwrap().count();
+        let buffer_offset = primitive.indices().unwrap().offset();
+        let transform = node.transform().matrix();
+
+        // Create buffers and describe attributes
+        let vao = VertexArray::new();
+        vao.bind();
+        for (attr, accessor) in primitive.attributes() {
+            let location: u32 = match attr {
+                Positions => 0,
+                Normals => 1,
+                Colors(_) => 2,
+                _ => continue, // skip the rest of attributes
+            };
+            let stride = accessor.view().unwrap().stride().unwrap_or(0);
+            let element_size = accessor.data_type().size();
+            let offset = accessor.offset();
+            unsafe {
+                gl::VertexAttribPointer(
+                    location,
+                    accessor.dimensions().multiplicity() as i32,
+                    accessor.data_type().as_gl_enum(),
+                    gl::FALSE,
+                    (stride * element_size) as i32,
+                    (offset * element_size) as *const GLvoid,
+                );
+                gl::EnableVertexAttribArray(location);
+            }
+        }
+
+        Some(Model {
+            vao,
+            transform,
+            num_elements,
+            buffer_offset,
+        })
+    }
+
+    pub fn draw_triangles(&self, buffer_id: GLuint) {
         unsafe {
-            gl::VertexAttribPointer(
-                location,
-                count,
-                gl::FLOAT,
-                gl::FALSE,
-                (stride * std::mem::size_of::<f32>()) as i32,
-                (offset * std::mem::size_of::<f32>()) as *const GLvoid,
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, buffer_id);
+            gl::DrawElements(
+                gl::TRIANGLES,
+                self.num_elements as i32,
+                gl::UNSIGNED_INT,
+                self.buffer_offset as *const GLvoid,
             );
-            gl::EnableVertexAttribArray(location);
         }
     }
 }

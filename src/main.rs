@@ -26,47 +26,7 @@ use camera::Movement::*;
 use shader::Program;
 use texture::Texture;
 
-use buffers::{ElementBuffer, VertexArray, VertexBuffer};
-
-// ==================================== Types =====================================================
-
-// impl Model {
-//     pub fn new() -> Self {
-//         Model {
-//             positions: VertexBuffer::new(),
-//             normals: VertexBuffer::new(),
-//             elements: ElementBuffer::new(),
-//             vao: VertexArray::new(),
-//             material_id: 0,
-//         }
-//     }
-// }
-
-// impl From<tobj::Model> for Model {
-//     fn from(src: tobj::Model) -> Self {
-//         let mut model = Model::new();
-
-//         model.material_id = src.mesh.material_id.unwrap();
-
-//         model.vao.bind();
-
-//         // Send vertex data
-//         model.positions.bind();
-//         model.positions.set_static_data(&src.mesh.positions, 3);
-//         model.vao.set_attrib(0, 3, 3, 0);
-//         model.normals.bind();
-//         model.normals.set_static_data(&src.mesh.normals, 3);
-//         model.vao.set_attrib(1, 3, 3, 0);
-
-//         // Send indices
-//         model.elements.bind();
-//         model.elements.set_static_data(&src.mesh.indices, 3);
-
-//         model.vao.unbind();
-
-//         model
-//     }
-// }
+use buffers::{ElementBuffer, Model, VertexArray, VertexBuffer};
 
 // ==================================== Functions =================================================
 
@@ -149,7 +109,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     assert_eq!(document.scenes().len(), 1);
     let scene = document.scenes().next().unwrap();
 
-    let models: Vec<Model> = scene.nodes().map(Into::into).collect();
+    let models: Vec<Model> = scene.nodes().filter_map(Model::from).collect();
 
     // Main loop
     let mut frame_start = SystemTime::now();
@@ -206,17 +166,12 @@ fn run() -> Result<(), Box<dyn Error>> {
         let light_pos = glm::vec4_to_vec3(&(view * glm::vec4(p.x, p.y, p.z, 1.0)));
         flatcolor_shader.set_vec3("point_light.position", &light_pos)?;
 
-        // for model in models.iter() {
-        //     flatcolor_shader.set_mat4("model", &glm::identity())?;
+        for model in models.iter() {
+            flatcolor_shader.set_mat4("model", &glm::Mat4x4::from(model.transform))?;
 
-        //     let material = &materials[model.material_id];
-        //     flatcolor_shader.set_float3("material.diffuse", &material.diffuse)?;
-        //     flatcolor_shader.set_float3("material.specular", &material.specular)?;
-        //     flatcolor_shader.set_float("material.shininess", material.shininess)?;
-
-        //     model.vao.bind();
-        //     model.elements.draw_triangles();
-        // }
+            model.vao.bind();
+            model.draw_triangles(buffer_id);
+        }
 
         window.gl_swap_window();
     }

@@ -7,6 +7,9 @@ TODO:
 
 DONE:
 
+22/05/2020
+- Trying to draw culdesac using gltf, but drew some garbage instead
+
 21/05/2020
 - Read about gltf format and brushed up on Rust refs
 
