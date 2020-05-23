@@ -2,8 +2,8 @@
 
 extern crate nalgebra_glm as glm;
 
-mod buffers;
 mod camera;
+mod scene;
 mod shader;
 mod texture;
 
@@ -23,10 +23,9 @@ use gltf::{Material, Mesh};
 // Local imports
 use camera::Camera;
 use camera::Movement::*;
+use scene::Scene;
 use shader::Program;
 use texture::Texture;
-
-use buffers::{ElementBuffer, Model, VertexArray, VertexBuffer};
 
 // ==================================== Functions =================================================
 
@@ -88,28 +87,8 @@ fn run() -> Result<(), Box<dyn Error>> {
     flatcolor_shader.set_float("point_light.attn_linear", 0.09)?;
     flatcolor_shader.set_float("point_light.attn_quadratic", 0.032)?;
 
-    // Load model
-    let (document, buffers, _images) = gltf::import("assets/models/culdesac/culdesac.glb")?;
-
-    // Define opengl buffers
-    assert_eq!(document.buffers().len(), 1);
-    let buffer = document.buffers().next().unwrap();
-    let mut buffer_id: GLuint = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut buffer_id);
-        gl::BindBuffer(gl::ARRAY_BUFFER, buffer_id);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            buffer.length() as isize,
-            buffers[0].as_ptr() as *const GLvoid,
-            gl::STATIC_DRAW,
-        );
-    }
-
-    assert_eq!(document.scenes().len(), 1);
-    let scene = document.scenes().next().unwrap();
-
-    let models: Vec<Model> = scene.nodes().filter_map(Model::from).collect();
+    // let scene = Scene::from("assets/models/Triangle/glTF/Triangle.gltf")?;
+    let scene = Scene::from("assets/models/culdesac/culdesac.glb")?;
 
     // Main loop
     let mut frame_start = SystemTime::now();
@@ -150,28 +129,18 @@ fn run() -> Result<(), Box<dyn Error>> {
             camera.go(Right, delta_time);
         }
 
-        unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
-
         let proj = camera.get_projection_matrix();
         let view = camera.get_view_matrix();
-
-        // Set transforms
-        flatcolor_shader.set_mat4("proj", &proj)?;
-        flatcolor_shader.set_mat4("view", &view)?;
 
         // Light
         let p = light_pos;
         let light_pos = glm::vec4_to_vec3(&(view * glm::vec4(p.x, p.y, p.z, 1.0)));
         flatcolor_shader.set_vec3("point_light.position", &light_pos)?;
 
-        for model in models.iter() {
-            flatcolor_shader.set_mat4("model", &glm::Mat4x4::from(model.transform))?;
-
-            model.vao.bind();
-            model.draw_triangles(buffer_id);
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
+        scene.draw(&proj, &view, &flatcolor_shader)?;
 
         window.gl_swap_window();
     }
