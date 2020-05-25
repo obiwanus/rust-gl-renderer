@@ -94,8 +94,8 @@ fn run() -> Result<(), Box<dyn Error>> {
     flatcolor_shader.set_vec3("material.specular", &glm::vec3(0.4, 0.4, 0.4))?;
     flatcolor_shader.set_float("material.shininess", 32.0)?;
 
-    // let scene = Scene::from("assets/models/culdesac/culdesac.glb")?;
-    let scene = Scene::from("assets/models/tmp/Box/glTF/Box.gltf")?;
+    let scene = Scene::from("assets/models/culdesac/culdesac.glb")?;
+    // let scene = Scene::from("assets/models/tmp/Box/glTF/Box.gltf")?;
     // let scene = Scene::from("assets/models/tmp/SimpleMeshes/glTF/SimpleMeshes.gltf")?;
 
     // Main loop

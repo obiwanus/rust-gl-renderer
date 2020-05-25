@@ -1,5 +1,4 @@
 TODO:
-- Load the culdesac model using glTF
 - Make a starry night skybox
 - Implement a direct light (from the moon)
 - Draw shadows
@@ -7,8 +6,11 @@ TODO:
 
 DONE:
 
+25/05/2020
+- Finally was able to draw the culdesac with colors
+
 24/05/2020
--
+- Trying to draw the culdesac
 
 23/05/2020
 - Draw a simple triangle from a gltf model

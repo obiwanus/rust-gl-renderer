@@ -32,6 +32,9 @@ uniform PointLight point_light;
 vec3 calc_point_light(PointLight light, vec3 normal, vec3 frag_pos, vec3 view_direction) {
   vec3 light_direction = normalize(light.position - frag_pos);
 
+  vec3 diffuse_color = IN.color;
+  // vec3 diffuse_color = material.diffuse;
+
   // Diffuse
   float diff = max(dot(normal, light_direction), 0.0);
 
@@ -45,8 +48,8 @@ vec3 calc_point_light(PointLight light, vec3 normal, vec3 frag_pos, vec3 view_di
                              light.attn_quadratic * (light_distance * light_distance));
 
   // Result
-  vec3 ambient = light.ambient * material.diffuse;
-  vec3 diffuse = light.diffuse * diff * material.diffuse;
+  vec3 ambient = light.ambient * diffuse_color;
+  vec3 diffuse = light.diffuse * diff * diffuse_color;
   vec3 specular = light.specular * spec * material.specular;
   return (ambient + diffuse + specular) * attenuation;
 }
@@ -61,6 +64,4 @@ void main() {
   result_color += calc_point_light(point_light, normal, IN.frag_pos, view_direction);
 
   Color = vec4(result_color, 1.0);
-//   Color = vec4(1.0, 1.0, 1.0, 1.0);
 }
-

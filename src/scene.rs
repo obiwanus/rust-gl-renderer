@@ -34,6 +34,7 @@ impl From<ShaderError> for SceneError {
 
 pub struct Scene {
     nodes: Vec<Node>,
+    meshes: Vec<Mesh>, // @optimisation: make a flat array of primitives instead
 }
 
 impl Scene {
@@ -47,23 +48,32 @@ impl Scene {
             .collect();
 
         // Create nodes
-        let nodes: Vec<Node> = document
-            .nodes()
-            .filter_map(|node| Node::from(node, &buffers))
+        let mut nodes: Vec<Node> = document.nodes().map(Node::from_gltf).collect();
+
+        // Store final transforms in each node
+        let parent_transform = glm::identity();
+        let scene = document.default_scene().unwrap();
+        for gltf_node in scene.nodes() {
+            recursive_update_transforms(gltf_node, &mut nodes, &parent_transform);
+        }
+
+        // Create meshes
+        let meshes: Vec<Mesh> = document
+            .meshes()
+            .map(|mesh| Mesh::from_gltf(mesh, &buffers))
             .collect();
 
-        println!("nodes: {:?}", nodes);
-
-        Ok(Scene { nodes })
+        Ok(Scene { nodes, meshes })
     }
 
     /// Draw all nodes in the scene
     pub fn draw(&self, proj: &Mat4x4, view: &Mat4x4, shader: &Program) -> Result<(), SceneError> {
         shader.set_mat4("proj", proj)?;
         shader.set_mat4("view", view)?;
-        for node in self.nodes.iter() {
+        for node in self.nodes.iter().filter(|n| n.mesh_id.is_some()) {
             shader.set_mat4("model", &node.transform)?;
-            for primitive in node.primitives.iter() {
+            let mesh = &self.meshes[node.mesh_id.unwrap()];
+            for primitive in mesh.primitives.iter() {
                 primitive.draw();
             }
         }
@@ -71,25 +81,53 @@ impl Scene {
     }
 }
 
+fn recursive_update_transforms(gltf_node: gltf::Node, nodes: &mut [Node], transform: &Mat4x4) {
+    let node = &mut nodes[gltf_node.index()];
+
+    // Apply parent transform
+    let final_transform = transform * node.transform;
+    node.transform = final_transform;
+
+    for child in gltf_node.children() {
+        recursive_update_transforms(child, nodes, &final_transform);
+    }
+}
+
 // ==================================== Node ======================================================
 
 #[derive(Debug)]
 struct Node {
-    /// The node transform matrix
+    mesh_id: Option<usize>,
+    children_ids: Vec<usize>,
+
+    /// The final transform matrix (including parent transforms)
     transform: Mat4x4,
-    primitives: Vec<Primitive>,
 }
 
 impl Node {
-    fn from(node: gltf::Node, buffers: &[Buffer]) -> Option<Self> {
-        Some(Node {
+    fn from_gltf(node: gltf::Node) -> Self {
+        Node {
+            mesh_id: node.mesh().map(|m| m.index()),
+            children_ids: node.children().map(|n| n.index()).collect(),
             transform: Mat4x4::from(node.transform().matrix()),
-            primitives: node
-                .mesh()?
-                .primitives()
-                .map(|primitive| Primitive::from(primitive, buffers))
-                .collect(),
-        })
+        }
+    }
+}
+
+// ==================================== Mesh ======================================================
+
+#[derive(Debug)]
+struct Mesh {
+    primitives: Vec<Primitive>,
+}
+
+impl Mesh {
+    fn from_gltf(mesh: gltf::Mesh, buffers: &[Buffer]) -> Self {
+        let primitives = mesh
+            .primitives()
+            .map(|primitive| Primitive::from_gltf(primitive, buffers))
+            .collect();
+        Mesh { primitives }
     }
 }
 
@@ -102,12 +140,12 @@ struct Primitive {
 }
 
 impl Primitive {
-    fn from(primitive: gltf::Primitive, buffers: &[Buffer]) -> Self {
+    fn from_gltf(primitive: gltf::Primitive, buffers: &[Buffer]) -> Self {
         let indices = primitive.indices().unwrap();
         let ebo = ElementBuffer {
             num_elements: indices.count(),
             element_type: indices.data_type().as_gl_enum(),
-            buffer_offset: indices.offset(),
+            buffer_offset: indices.offset() + indices.view().unwrap().offset(),
         };
 
         // Create buffers and describe attributes
@@ -127,8 +165,9 @@ impl Primitive {
             let stride = buffer_view.stride().unwrap_or(0);
             let offset = buffer_view.offset() + accessor.offset();
 
-            buffers[buffer_view.buffer().index()].bind_as_array_buffer();
-            buffers[buffer_view.buffer().index()].bind_as_ebo();
+            let buffer = &buffers[buffer_view.buffer().index()];
+            // buffer.bind_as_array_buffer();
+            buffer.bind_as_ebo();
             unsafe {
                 gl::VertexAttribPointer(
                     location,
@@ -154,12 +193,12 @@ impl Primitive {
                 assert_eq!(num_components, 4);
             }
 
-            println!("== vertex attrib ==");
-            println!("   location: {:?}", location);
-            println!("   num_components {:?}", num_components);
-            println!("   data_type: {:?}", data_type);
-            println!("   stride: {:?}", stride);
-            println!("   offset: {:?}", offset);
+            // println!("== vertex attrib ==");
+            // println!("   location: {:?}", location);
+            // println!("   num_components {:?}", num_components);
+            // println!("   data_type: {:?}", data_type);
+            // println!("   stride: {:?}", stride);
+            // println!("   offset: {:?}", offset);
         }
         vao.unbind(); // done
 
