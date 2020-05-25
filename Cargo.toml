@@ -12,3 +12,7 @@ stb_image = "0.2.2"
 thiserror = "1.0.18"
 gltf = "0.15.2"
 tobj = "2.0.0"
+
+[features]
+default = []
+debug = []

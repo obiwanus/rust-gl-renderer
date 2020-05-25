@@ -2,6 +2,7 @@ use thiserror::Error;
 
 use gl::types::*;
 use glm::Mat4x4;
+use gltf::accessor::DataType;
 use gltf::Semantic::*;
 
 use crate::shader::{Program, ShaderError};
@@ -51,6 +52,8 @@ impl Scene {
             .filter_map(|node| Node::from(node, &buffers))
             .collect();
 
+        println!("nodes: {:?}", nodes);
+
         Ok(Scene { nodes })
     }
 
@@ -70,6 +73,7 @@ impl Scene {
 
 // ==================================== Node ======================================================
 
+#[derive(Debug)]
 struct Node {
     /// The node transform matrix
     transform: Mat4x4,
@@ -91,6 +95,7 @@ impl Node {
 
 // ==================================== Primitive =================================================
 
+#[derive(Debug)]
 struct Primitive {
     vao: VertexArray,
     ebo: ElementBuffer,
@@ -108,7 +113,6 @@ impl Primitive {
         // Create buffers and describe attributes
         let vao = VertexArray::new();
         vao.bind();
-        println!("vao: {:?})", vao);
         for (attr, accessor) in primitive.attributes() {
             let location: u32 = match attr {
                 Positions => 0,
@@ -118,8 +122,9 @@ impl Primitive {
             };
             let buffer_view = accessor.view().unwrap();
 
+            let num_components = accessor.dimensions().multiplicity();
+            let data_type = accessor.data_type();
             let stride = buffer_view.stride().unwrap_or(0);
-            let element_size = accessor.data_type().size();
             let offset = buffer_view.offset() + accessor.offset();
 
             buffers[buffer_view.buffer().index()].bind_as_array_buffer();
@@ -127,28 +132,34 @@ impl Primitive {
             unsafe {
                 gl::VertexAttribPointer(
                     location,
-                    accessor.dimensions().multiplicity() as i32,
-                    accessor.data_type().as_gl_enum(),
+                    num_components as i32,
+                    data_type.as_gl_enum(),
                     gl::FALSE,
-                    (stride * element_size) as i32,
+                    stride as i32,
                     offset as *const GLvoid,
                 );
                 gl::EnableVertexAttribArray(location);
             }
-            println!("location: {:?}", location);
-            println!(
-                "accessor.dimensions().multiplicity() as i32: {:?}",
-                accessor.dimensions().multiplicity() as i32
-            );
-            println!(
-                "accessor.data_type().as_gl_enum(): {:?}",
-                accessor.data_type().as_gl_enum()
-            );
-            println!(
-                "(stride * element_size) as i32: {:?}",
-                (stride * element_size) as i32
-            );
-            println!("offset as *const GLvoid: {:?}", offset as *const GLvoid);
+
+            if location == 0 {
+                assert_eq!(data_type, DataType::F32);
+                assert_eq!(num_components, 3);
+            }
+            if location == 1 {
+                assert_eq!(data_type, DataType::F32);
+                assert_eq!(num_components, 3);
+            }
+            if location == 2 {
+                assert_eq!(data_type, DataType::F32);
+                assert_eq!(num_components, 4);
+            }
+
+            println!("== vertex attrib ==");
+            println!("   location: {:?}", location);
+            println!("   num_components {:?}", num_components);
+            println!("   data_type: {:?}", data_type);
+            println!("   stride: {:?}", stride);
+            println!("   offset: {:?}", offset);
         }
         vao.unbind(); // done
 

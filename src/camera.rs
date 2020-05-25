@@ -6,6 +6,7 @@ const FOV_MAX: f32 = 0.5 * PI;
 
 const ZOOM_MIN: f32 = 1.0;
 const ZOOM_MAX: f32 = 100.0;
+const ZOOM_DEFAULT: f32 = 30.0;
 
 const PITCH_MIN: f32 = -0.49 * PI;
 const PITCH_MAX: f32 = 0.49 * PI;
@@ -45,7 +46,7 @@ impl Camera {
 
             movement_speed: 4.0,
             sensitivity: 0.0015,
-            zoom: ZOOM_MIN,
+            zoom: ZOOM_DEFAULT,
             aspect_ratio: 4.0 / 3.0,
         }
     }

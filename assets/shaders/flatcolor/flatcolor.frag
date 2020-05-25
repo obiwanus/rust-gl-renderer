@@ -61,5 +61,6 @@ void main() {
   result_color += calc_point_light(point_light, normal, IN.frag_pos, view_direction);
 
   Color = vec4(result_color, 1.0);
+//   Color = vec4(1.0, 1.0, 1.0, 1.0);
 }
 

@@ -48,9 +48,9 @@ fn run() -> Result<(), Box<dyn Error>> {
     gl_attr.set_double_buffer(true);
 
     let window = video_subsystem
-        .window("Game 2", 1024, 768)
+        .window("Game 2", 1366, 768)
         .opengl()
-        .fullscreen_desktop()
+        // .fullscreen_desktop()
         .build()?;
     let (window_width, window_height) = window.size();
 
@@ -81,14 +81,22 @@ fn run() -> Result<(), Box<dyn Error>> {
         .fragment_shader("assets/shaders/flatcolor/flatcolor.frag")?
         .link()?;
     flatcolor_shader.set_used();
+
+    // One point light
     flatcolor_shader.set_vec3("point_light.ambient", &(0.2f32 * light_color))?;
     flatcolor_shader.set_vec3("point_light.diffuse", &(0.5f32 * light_color))?;
     flatcolor_shader.set_vec3("point_light.specular", &(1.0f32 * light_color))?;
     flatcolor_shader.set_float("point_light.attn_linear", 0.09)?;
     flatcolor_shader.set_float("point_light.attn_quadratic", 0.032)?;
 
-    // let scene = Scene::from("assets/models/Triangle/glTF/Triangle.gltf")?;
-    let scene = Scene::from("assets/models/culdesac/culdesac.glb")?;
+    // Set default material
+    flatcolor_shader.set_vec3("material.diffuse", &glm::vec3(0.2, 0.2, 0.2))?;
+    flatcolor_shader.set_vec3("material.specular", &glm::vec3(0.4, 0.4, 0.4))?;
+    flatcolor_shader.set_float("material.shininess", 32.0)?;
+
+    // let scene = Scene::from("assets/models/culdesac/culdesac.glb")?;
+    let scene = Scene::from("assets/models/tmp/Box/glTF/Box.gltf")?;
+    // let scene = Scene::from("assets/models/tmp/SimpleMeshes/glTF/SimpleMeshes.gltf")?;
 
     // Main loop
     let mut frame_start = SystemTime::now();
@@ -143,6 +151,17 @@ fn run() -> Result<(), Box<dyn Error>> {
         scene.draw(&proj, &view, &flatcolor_shader)?;
 
         window.gl_swap_window();
+
+        #[cfg(feature = "debug")]
+        {
+            // Display frame time
+            let frame_ms = SystemTime::now()
+                .duration_since(frame_start)
+                .unwrap()
+                .as_micros() as f32
+                / 1000.0;
+            println!("frame: {} ms", frame_ms);
+        }
     }
 
     Ok(())
