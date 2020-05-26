@@ -1,5 +1,5 @@
 use gl::types::*;
-use stb_image::image::{self, LoadResult};
+use stb_image::image::{self, Image, LoadResult};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -23,7 +23,7 @@ impl Texture {
         Texture { id }
     }
 
-    pub fn bind(&self, unit: i32) {
+    pub fn bind_2d(&self, unit: i32) {
         unsafe {
             gl::ActiveTexture(Texture::unit_to_gl_const(unit));
             gl::BindTexture(gl::TEXTURE_2D, self.id);
@@ -63,17 +63,9 @@ impl Texture {
         self
     }
 
-    pub fn load_image(self, path: &str) -> Result<Self, TextureError> {
-        unsafe {
-            stb_image::stb_image::bindgen::stbi_set_flip_vertically_on_load(1);
-        }
-
+    pub fn set_image_2d(self, path: &str) -> Result<Self, TextureError> {
         // Load image from disk
-        let img = match image::load_with_depth(path, 3, false) {
-            LoadResult::ImageU8(image) => Ok(image),
-            LoadResult::ImageF32(_) => Err(TextureError::FormatNotSupported),
-            LoadResult::Error(msg) => Err(TextureError::LoadError(msg)),
-        }?;
+        let img = load_image(path, true)?;
 
         // Send pixels to GPU
         unsafe {
@@ -93,5 +85,17 @@ impl Texture {
         }
 
         Ok(self)
+    }
+}
+
+pub fn load_image(path: &str, flip: bool) -> Result<Image<u8>, TextureError> {
+    let flip = if flip { 1 } else { 0 };
+    unsafe {
+        stb_image::stb_image::bindgen::stbi_set_flip_vertically_on_load(flip);
+    }
+    match image::load_with_depth(path, 3, false) {
+        LoadResult::ImageU8(image) => Ok(image),
+        LoadResult::ImageF32(_) => Err(TextureError::FormatNotSupported),
+        LoadResult::Error(msg) => Err(TextureError::LoadError(msg)),
     }
 }

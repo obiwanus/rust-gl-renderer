@@ -1,0 +1,174 @@
+use gl::types::*;
+use glm::Mat4x4;
+use thiserror::Error;
+
+use crate::buffers::{Buffer, VertexArray};
+use crate::shader::{Program, ShaderError};
+use crate::texture::{load_image, TextureError};
+
+#[derive(Debug, Error)]
+pub enum SkyboxError {
+    #[error("Skybox texture error: {0}")]
+    Texture(#[from] TextureError),
+    #[error("Skybox shader error: {0}")]
+    Shader(#[from] ShaderError),
+}
+
+pub struct Skybox {
+    id: GLuint,
+    shader: Program,
+    vao: VertexArray,
+}
+
+impl Skybox {
+    /// right, left, top, bottom, front, back
+    pub fn from(paths: [&str; 6]) -> Result<Self, SkyboxError> {
+        // Generate texture
+        let mut id: GLuint = 0;
+        unsafe {
+            gl::GenTextures(1, &mut id);
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, id);
+        }
+
+        // Load images
+        for (i, path) in paths.iter().enumerate() {
+            let img = load_image(path, false)?;
+            unsafe {
+                // Send to GPU
+                gl::TexImage2D(
+                    gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32,
+                    0,
+                    gl::RGB as GLint,
+                    img.width as GLint,
+                    img.height as GLint,
+                    0,
+                    gl::RGB,
+                    gl::UNSIGNED_BYTE,
+                    img.data.as_ptr() as *const std::ffi::c_void,
+                );
+            }
+        }
+
+        // Set default parameters
+        unsafe {
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, id);
+            gl::TexParameteri(
+                gl::TEXTURE_CUBE_MAP,
+                gl::TEXTURE_WRAP_S,
+                gl::CLAMP_TO_EDGE as GLint,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_CUBE_MAP,
+                gl::TEXTURE_WRAP_T,
+                gl::CLAMP_TO_EDGE as GLint,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_CUBE_MAP,
+                gl::TEXTURE_WRAP_R,
+                gl::CLAMP_TO_EDGE as GLint,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_CUBE_MAP,
+                gl::TEXTURE_MIN_FILTER,
+                gl::LINEAR as GLint,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_CUBE_MAP,
+                gl::TEXTURE_MAG_FILTER,
+                gl::LINEAR as GLint,
+            );
+        }
+
+        // Create shader
+        let shader = Program::new()
+            .vertex_shader("assets/shaders/skybox/skybox.vert")?
+            .fragment_shader("assets/shaders/skybox/skybox.frag")?
+            .link()?;
+
+        #[rustfmt::skip]
+        let vertices = [
+            // positions
+            -1.0f32,  1.0, -1.0,
+            -1.0, -1.0, -1.0,
+            1.0, -1.0, -1.0,
+            1.0, -1.0, -1.0,
+            1.0,  1.0, -1.0,
+            -1.0,  1.0, -1.0,
+
+            -1.0, -1.0,  1.0,
+            -1.0, -1.0, -1.0,
+            -1.0,  1.0, -1.0,
+            -1.0,  1.0, -1.0,
+            -1.0,  1.0,  1.0,
+            -1.0, -1.0,  1.0,
+
+            1.0, -1.0, -1.0,
+            1.0, -1.0,  1.0,
+            1.0,  1.0,  1.0,
+            1.0,  1.0,  1.0,
+            1.0,  1.0, -1.0,
+            1.0, -1.0, -1.0,
+
+            -1.0, -1.0,  1.0,
+            -1.0,  1.0,  1.0,
+            1.0,  1.0,  1.0,
+            1.0,  1.0,  1.0,
+            1.0, -1.0,  1.0,
+            -1.0, -1.0,  1.0,
+
+            -1.0,  1.0, -1.0,
+            1.0,  1.0, -1.0,
+            1.0,  1.0,  1.0,
+            1.0,  1.0,  1.0,
+            -1.0,  1.0,  1.0,
+            -1.0,  1.0, -1.0,
+
+            -1.0, -1.0, -1.0,
+            -1.0, -1.0,  1.0,
+            1.0, -1.0, -1.0,
+            1.0, -1.0, -1.0,
+            -1.0, -1.0,  1.0,
+            1.0, -1.0,  1.0,
+        ];
+        let vao = VertexArray::new();
+        vao.bind();
+        let vbo = Buffer::create(
+            vertices.as_ptr() as *const u8,
+            vertices.len() * std::mem::size_of::<f32>(),
+        );
+        vbo.bind_as_array_buffer();
+        unsafe {
+            gl::VertexAttribPointer(
+                0,
+                3,
+                gl::FLOAT,
+                gl::FALSE,
+                0,
+                std::ptr::null() as *const GLvoid,
+            );
+            gl::EnableVertexAttribArray(0);
+        }
+        vao.unbind();
+
+        Ok(Skybox { id, shader, vao })
+    }
+
+    pub fn draw(&self, proj: &Mat4x4, view: &Mat4x4) -> Result<(), SkyboxError> {
+        unsafe {
+            gl::DepthMask(gl::FALSE);
+        }
+
+        self.shader.set_used();
+        self.shader.set_mat4("proj", proj)?;
+        self.shader.set_mat4("view", view)?;
+        self.vao.bind();
+
+        unsafe {
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.id);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            gl::DepthMask(gl::TRUE);
+        }
+
+        Ok(())
+    }
+}

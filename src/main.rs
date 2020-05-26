@@ -2,9 +2,11 @@
 
 extern crate nalgebra_glm as glm;
 
+mod buffers;
 mod camera;
 mod scene;
 mod shader;
+mod skybox;
 mod texture;
 
 // ==================================== Imports ===================================================
@@ -16,15 +18,12 @@ use std::time::SystemTime;
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 
-use gl::types::*;
-use gltf::scene::Node;
-use gltf::{Material, Mesh};
-
 // Local imports
 use camera::Camera;
 use camera::Movement::*;
 use scene::Scene;
 use shader::Program;
+use skybox::Skybox;
 use texture::Texture;
 
 // ==================================== Functions =================================================
@@ -69,8 +68,8 @@ fn run() -> Result<(), Box<dyn Error>> {
     // Set up camera
     let mut camera = Camera::new();
     camera.aspect_ratio = (window_width as f32) / (window_height as f32);
-    camera.position = glm::vec3(0.0, 2.0, 5.0);
-    camera.look_at(glm::vec3(0.0, 2.0, 0.0));
+    camera.position = glm::vec3(0.0, 0.5, -23.0);
+    camera.look_at(glm::vec3(0.0, 0.5, 0.0));
 
     let light_pos = glm::vec3(-0.7, 0.2, 2.0);
     let light_color = glm::vec3(1.0, 1.0, 1.0);
@@ -95,8 +94,15 @@ fn run() -> Result<(), Box<dyn Error>> {
     flatcolor_shader.set_float("material.shininess", 32.0)?;
 
     let scene = Scene::from("assets/models/culdesac/culdesac.glb")?;
-    // let scene = Scene::from("assets/models/tmp/Box/glTF/Box.gltf")?;
-    // let scene = Scene::from("assets/models/tmp/SimpleMeshes/glTF/SimpleMeshes.gltf")?;
+
+    let skybox = Skybox::from([
+        "assets/textures/skybox/right.jpg",
+        "assets/textures/skybox/left.jpg",
+        "assets/textures/skybox/top.jpg",
+        "assets/textures/skybox/bottom.jpg",
+        "assets/textures/skybox/front.jpg",
+        "assets/textures/skybox/back.jpg",
+    ])?;
 
     // Main loop
     let mut frame_start = SystemTime::now();
@@ -111,6 +117,9 @@ fn run() -> Result<(), Box<dyn Error>> {
             match event {
                 Event::Quit { .. } => break 'main,
                 Event::MouseWheel { y, .. } => camera.adjust_zoom(y),
+                Event::MouseButtonDown { .. } => {
+                    println!("camera: {:?}", camera);
+                }
                 _ => {}
             }
         }
@@ -145,9 +154,11 @@ fn run() -> Result<(), Box<dyn Error>> {
         let light_pos = glm::vec4_to_vec3(&(view * glm::vec4(p.x, p.y, p.z, 1.0)));
         flatcolor_shader.set_vec3("point_light.position", &light_pos)?;
 
+        // Draw
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
+        skybox.draw(&proj, &view)?; // draw skybox last
         scene.draw(&proj, &view, &flatcolor_shader)?;
 
         window.gl_swap_window();

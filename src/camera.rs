@@ -18,6 +18,7 @@ pub enum Movement {
     Right,
 }
 
+#[derive(Debug)]
 pub struct Camera {
     pub position: Vec3,
     direction: Vec3,
@@ -65,9 +66,10 @@ impl Camera {
     /// Move the camera
     pub fn go(&mut self, direction: Movement, delta_time: f32) {
         let speed = self.movement_speed * delta_time;
+        let projected_direction = glm::vec3(self.direction.x, 0.0, self.direction.z);
         match direction {
-            Movement::Forward => self.position += speed * self.direction,
-            Movement::Backward => self.position -= speed * self.direction,
+            Movement::Forward => self.position += speed * projected_direction,
+            Movement::Backward => self.position -= speed * projected_direction,
             Movement::Left => self.position -= speed * self.right,
             Movement::Right => self.position += speed * self.right,
         }

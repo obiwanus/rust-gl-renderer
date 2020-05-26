@@ -1,10 +1,12 @@
 TODO:
-- Make a starry night skybox
-- Implement a direct light (from the moon)
+- Implement a direct light
 - Draw shadows
 = Make a police car light animation
 
 DONE:
+
+26/05/2020
+- Draw a skybox
 
 25/05/2020
 - Finally was able to draw the culdesac with colors

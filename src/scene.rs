@@ -5,6 +5,7 @@ use glm::Mat4x4;
 use gltf::accessor::DataType;
 use gltf::Semantic::*;
 
+use crate::buffers::{Buffer, ElementBuffer, VertexArray};
 use crate::shader::{Program, ShaderError};
 
 // ==================================== Error =====================================================
@@ -12,22 +13,10 @@ use crate::shader::{Program, ShaderError};
 #[derive(Debug, Error)]
 pub enum SceneError {
     #[error("Cannot import glTF model: {0}")]
-    GltfError(gltf::Error),
+    GltfError(#[from] gltf::Error),
 
     #[error("Shader error when drawing scene: {0}")]
-    ShaderError(ShaderError),
-}
-
-impl From<gltf::Error> for SceneError {
-    fn from(error: gltf::Error) -> Self {
-        SceneError::GltfError(error)
-    }
-}
-
-impl From<ShaderError> for SceneError {
-    fn from(error: ShaderError) -> Self {
-        SceneError::ShaderError(error)
-    }
+    ShaderError(#[from] ShaderError),
 }
 
 // ==================================== Scene =====================================================
@@ -68,6 +57,7 @@ impl Scene {
 
     /// Draw all nodes in the scene
     pub fn draw(&self, proj: &Mat4x4, view: &Mat4x4, shader: &Program) -> Result<(), SceneError> {
+        shader.set_used();
         shader.set_mat4("proj", proj)?;
         shader.set_mat4("view", view)?;
         for node in self.nodes.iter().filter(|n| n.mesh_id.is_some()) {
@@ -81,6 +71,7 @@ impl Scene {
     }
 }
 
+/// Update the node and its children with the transform and store the final transforms
 fn recursive_update_transforms(gltf_node: gltf::Node, nodes: &mut [Node], transform: &Mat4x4) {
     let node = &mut nodes[gltf_node.index()];
 
@@ -166,7 +157,6 @@ impl Primitive {
             let offset = buffer_view.offset() + accessor.offset();
 
             let buffer = &buffers[buffer_view.buffer().index()];
-            // buffer.bind_as_array_buffer();
             buffer.bind_as_ebo();
             unsafe {
                 gl::VertexAttribPointer(
@@ -215,91 +205,6 @@ impl Primitive {
                 self.ebo.buffer_offset as *const GLvoid,
             );
             assert_eq!(gl::GetError(), gl::NO_ERROR);
-        }
-    }
-}
-
-// ==================================== Buffer ====================================================
-
-/// An OpenGL buffer
-#[derive(Debug)]
-struct Buffer {
-    /// ID of the buffer in OpenGL
-    id: GLuint,
-
-    /// Size in bytes
-    length: usize,
-}
-
-impl Buffer {
-    fn create(data_ptr: *const u8, length: usize) -> Self {
-        let mut id: GLuint = 0;
-        unsafe {
-            gl::GenBuffers(1, &mut id);
-            gl::BindBuffer(gl::ARRAY_BUFFER, id);
-            gl::BufferData(
-                gl::ARRAY_BUFFER,
-                length as isize,
-                data_ptr as *const GLvoid,
-                gl::STATIC_DRAW,
-            );
-        }
-        Buffer { id, length }
-    }
-
-    fn bind_as_array_buffer(&self) {
-        unsafe {
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.id);
-        }
-    }
-
-    fn bind_as_ebo(&self) {
-        unsafe {
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.id);
-        }
-    }
-
-    fn unbind(&self) {
-        unsafe {
-            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        }
-    }
-}
-
-// ==================================== ElementBuffer =============================================
-
-#[derive(Debug)]
-struct ElementBuffer {
-    num_elements: usize,
-    buffer_offset: usize,
-    element_type: GLenum,
-}
-
-// ==================================== VertexArray ===============================================
-
-#[derive(Debug)]
-struct VertexArray {
-    id: GLuint,
-}
-
-impl VertexArray {
-    fn new() -> Self {
-        let mut id: GLuint = 0;
-        unsafe {
-            gl::GenVertexArrays(1, &mut id);
-        }
-        VertexArray { id }
-    }
-
-    fn bind(&self) {
-        unsafe {
-            gl::BindVertexArray(self.id);
-        }
-    }
-
-    fn unbind(&self) {
-        unsafe {
-            gl::BindVertexArray(0);
         }
     }
 }
