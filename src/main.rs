@@ -1,6 +1,9 @@
 // ==================================== Crates and modules ========================================
 
+extern crate gl as opengl;
 extern crate nalgebra_glm as glm;
+
+mod utils;
 
 mod buffers;
 mod camera;
@@ -25,6 +28,7 @@ use scene::Scene;
 use shader::Program;
 use skybox::Skybox;
 use texture::Texture;
+use utils::gl_check_error;
 
 // ==================================== Functions =================================================
 
@@ -93,7 +97,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     flatcolor_shader.set_vec3("material.specular", &glm::vec3(0.4, 0.4, 0.4))?;
     flatcolor_shader.set_float("material.shininess", 32.0)?;
 
-    let scene = Scene::from("assets/models/culdesac/culdesac.glb")?;
+    // let scene = Scene::from("assets/models/culdesac/culdesac.glb")?;
 
     let skybox = Skybox::from([
         "assets/textures/skybox/right.jpg",
@@ -103,6 +107,10 @@ fn run() -> Result<(), Box<dyn Error>> {
         "assets/textures/skybox/front.jpg",
         "assets/textures/skybox/back.jpg",
     ])?;
+
+    println!("Checking error...");
+    gl_check_error!();
+    println!("Done...");
 
     // Main loop
     let mut frame_start = SystemTime::now();
@@ -152,6 +160,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         // Light
         let p = light_pos;
         let light_pos = glm::vec4_to_vec3(&(view * glm::vec4(p.x, p.y, p.z, 1.0)));
+        flatcolor_shader.set_used();
         flatcolor_shader.set_vec3("point_light.position", &light_pos)?;
 
         // Draw
@@ -159,7 +168,8 @@ fn run() -> Result<(), Box<dyn Error>> {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
         skybox.draw(&proj, &view)?; // draw skybox last
-        scene.draw(&proj, &view, &flatcolor_shader)?;
+
+        // scene.draw(&proj, &view, &flatcolor_shader)?;
 
         window.gl_swap_window();
 

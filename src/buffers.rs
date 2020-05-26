@@ -1,5 +1,7 @@
 use gl::types::*;
 
+use crate::utils::gl_check_error;
+
 // ==================================== Buffer ====================================================
 
 /// An OpenGL buffer
@@ -64,14 +66,19 @@ impl VertexArray {
     }
 
     pub fn bind(&self) {
+        gl_check_error!();
+        println!("Before bind is fine..");
         unsafe {
             gl::BindVertexArray(self.id);
         }
+        gl_check_error!();
+        println!("After bind is fine..");
     }
 
     pub fn unbind(&self) {
         unsafe {
             gl::BindVertexArray(0);
         }
+        gl_check_error!();
     }
 }

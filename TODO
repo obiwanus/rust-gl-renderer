@@ -7,6 +7,7 @@ DONE:
 
 26/05/2020
 - Draw a skybox
+- Spent enough time debugging OpenGL, will write an automatic error checker
 
 25/05/2020
 - Finally was able to draw the culdesac with colors

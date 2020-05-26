@@ -7,6 +7,7 @@ use gltf::Semantic::*;
 
 use crate::buffers::{Buffer, ElementBuffer, VertexArray};
 use crate::shader::{Program, ShaderError};
+use crate::utils::gl_check_error;
 
 // ==================================== Error =====================================================
 
@@ -204,7 +205,7 @@ impl Primitive {
                 self.ebo.element_type,
                 self.ebo.buffer_offset as *const GLvoid,
             );
-            assert_eq!(gl::GetError(), gl::NO_ERROR);
         }
+        gl_check_error!();
     }
 }

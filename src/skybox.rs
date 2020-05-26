@@ -5,6 +5,7 @@ use thiserror::Error;
 use crate::buffers::{Buffer, VertexArray};
 use crate::shader::{Program, ShaderError};
 use crate::texture::{load_image, TextureError};
+use crate::utils::gl_check_error;
 
 #[derive(Debug, Error)]
 pub enum SkyboxError {
@@ -28,30 +29,7 @@ impl Skybox {
         unsafe {
             gl::GenTextures(1, &mut id);
             gl::BindTexture(gl::TEXTURE_CUBE_MAP, id);
-        }
 
-        // Load images
-        for (i, path) in paths.iter().enumerate() {
-            let img = load_image(path, false)?;
-            unsafe {
-                // Send to GPU
-                gl::TexImage2D(
-                    gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32,
-                    0,
-                    gl::RGB as GLint,
-                    img.width as GLint,
-                    img.height as GLint,
-                    0,
-                    gl::RGB,
-                    gl::UNSIGNED_BYTE,
-                    img.data.as_ptr() as *const std::ffi::c_void,
-                );
-            }
-        }
-
-        // Set default parameters
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_CUBE_MAP, id);
             gl::TexParameteri(
                 gl::TEXTURE_CUBE_MAP,
                 gl::TEXTURE_WRAP_S,
@@ -79,11 +57,34 @@ impl Skybox {
             );
         }
 
+        // Load images
+        for (i, path) in paths.iter().enumerate() {
+            let img = load_image(path, false)?;
+            unsafe {
+                // Send to GPU
+                gl::TexImage2D(
+                    gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32,
+                    0,
+                    gl::RGB as GLint,
+                    img.width as GLint,
+                    img.height as GLint,
+                    0,
+                    gl::RGB,
+                    gl::UNSIGNED_BYTE,
+                    img.data.as_ptr() as *const std::ffi::c_void,
+                );
+            }
+        }
+
         // Create shader
         let shader = Program::new()
             .vertex_shader("assets/shaders/skybox/skybox.vert")?
             .fragment_shader("assets/shaders/skybox/skybox.frag")?
             .link()?;
+        gl_check_error!();
+        shader.set_used();
+        shader.set_texture_unit("skybox", 0)?;
+        gl_check_error!();
 
         #[rustfmt::skip]
         let vertices = [
@@ -157,7 +158,6 @@ impl Skybox {
         unsafe {
             gl::DepthMask(gl::FALSE);
         }
-
         self.shader.set_used();
         self.shader.set_mat4("proj", proj)?;
         self.shader.set_mat4("view", view)?;
