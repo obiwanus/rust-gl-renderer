@@ -32,6 +32,7 @@ pub struct Camera {
     sensitivity: f32,
     zoom: f32,
     pub aspect_ratio: f32,
+    locked: bool, // Whether to allow flying
 }
 
 impl Camera {
@@ -49,6 +50,7 @@ impl Camera {
             sensitivity: 0.0015,
             zoom: ZOOM_DEFAULT,
             aspect_ratio: 4.0 / 3.0,
+            locked: false,
         }
     }
 
@@ -66,7 +68,11 @@ impl Camera {
     /// Move the camera
     pub fn go(&mut self, direction: Movement, delta_time: f32) {
         let speed = self.movement_speed * delta_time;
-        let projected_direction = glm::vec3(self.direction.x, 0.0, self.direction.z);
+        let projected_direction = if self.locked {
+            glm::vec3(self.direction.x, 0.0, self.direction.z)
+        } else {
+            self.direction
+        };
         match direction {
             Movement::Forward => self.position += speed * projected_direction,
             Movement::Backward => self.position -= speed * projected_direction,

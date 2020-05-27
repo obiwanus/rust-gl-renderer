@@ -5,7 +5,6 @@ use thiserror::Error;
 use crate::buffers::{Buffer, VertexArray};
 use crate::shader::{Program, ShaderError};
 use crate::texture::{load_image, TextureError};
-use crate::utils::gl_check_error;
 
 #[derive(Debug, Error)]
 pub enum SkyboxError {
@@ -81,10 +80,8 @@ impl Skybox {
             .vertex_shader("assets/shaders/skybox/skybox.vert")?
             .fragment_shader("assets/shaders/skybox/skybox.frag")?
             .link()?;
-        gl_check_error!();
         shader.set_used();
         shader.set_texture_unit("skybox", 0)?;
-        gl_check_error!();
 
         #[rustfmt::skip]
         let vertices = [
@@ -156,7 +153,7 @@ impl Skybox {
 
     pub fn draw(&self, proj: &Mat4x4, view: &Mat4x4) -> Result<(), SkyboxError> {
         unsafe {
-            gl::DepthMask(gl::FALSE);
+            gl::DepthFunc(gl::LEQUAL);
         }
         self.shader.set_used();
         self.shader.set_mat4("proj", proj)?;
@@ -166,7 +163,7 @@ impl Skybox {
         unsafe {
             gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.id);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
-            gl::DepthMask(gl::TRUE);
+            gl::DepthFunc(gl::LESS);
         }
 
         Ok(())

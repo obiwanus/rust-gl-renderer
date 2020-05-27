@@ -10,7 +10,6 @@ void main()
 {
     TexCoords = Position;
     mat4 skybox_view = mat4(mat3(view)); // remove the translation component
-    gl_Position = proj * skybox_view * vec4(Position, 1.0);
-    // vec4 pos = proj * skybox_view * vec4(Position, 1.0);
-    // gl_Position = pos.xyww;
+    vec4 pos = proj * skybox_view * vec4(Position, 1.0);
+    gl_Position = pos.xyww;
 }

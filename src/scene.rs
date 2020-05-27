@@ -57,10 +57,7 @@ impl Scene {
     }
 
     /// Draw all nodes in the scene
-    pub fn draw(&self, proj: &Mat4x4, view: &Mat4x4, shader: &Program) -> Result<(), SceneError> {
-        shader.set_used();
-        shader.set_mat4("proj", proj)?;
-        shader.set_mat4("view", view)?;
+    pub fn draw(&self, shader: &Program) -> Result<(), SceneError> {
         for node in self.nodes.iter().filter(|n| n.mesh_id.is_some()) {
             shader.set_mat4("model", &node.transform)?;
             let mesh = &self.meshes[node.mesh_id.unwrap()];

@@ -21,14 +21,16 @@ use std::time::SystemTime;
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 
+use gl::types::*;
+
 // Local imports
+use buffers::{Buffer, VertexArray};
 use camera::Camera;
 use camera::Movement::*;
 use scene::Scene;
 use shader::Program;
 use skybox::Skybox;
 use texture::Texture;
-use utils::gl_check_error;
 
 // ==================================== Functions =================================================
 
@@ -76,7 +78,8 @@ fn run() -> Result<(), Box<dyn Error>> {
     camera.look_at(glm::vec3(0.0, 0.5, 0.0));
 
     let light_pos = glm::vec3(-0.7, 0.2, 2.0);
-    let light_color = glm::vec3(1.0, 1.0, 1.0);
+    let light_color = glm::vec3(1.0, 0.7, 0.7);
+    let light_direction = glm::vec3(0.37f32, -0.56, 0.75);
 
     // Flat color shader
     let flatcolor_shader = Program::new()
@@ -85,19 +88,25 @@ fn run() -> Result<(), Box<dyn Error>> {
         .link()?;
     flatcolor_shader.set_used();
 
+    // Directional light
+    flatcolor_shader.set_vec3("directional_light.ambient", &(0.2f32 * light_color))?;
+    flatcolor_shader.set_vec3("directional_light.diffuse", &(0.5f32 * light_color))?;
+    flatcolor_shader.set_vec3("directional_light.specular", &(1.0f32 * light_color))?;
+
     // One point light
-    flatcolor_shader.set_vec3("point_light.ambient", &(0.2f32 * light_color))?;
-    flatcolor_shader.set_vec3("point_light.diffuse", &(0.5f32 * light_color))?;
-    flatcolor_shader.set_vec3("point_light.specular", &(1.0f32 * light_color))?;
-    flatcolor_shader.set_float("point_light.attn_linear", 0.09)?;
-    flatcolor_shader.set_float("point_light.attn_quadratic", 0.032)?;
+    // flatcolor_shader.set_vec3("point_light.ambient", &(0.2f32 * light_color))?;
+    // flatcolor_shader.set_vec3("point_light.diffuse", &(0.5f32 * light_color))?;
+    // flatcolor_shader.set_vec3("point_light.specular", &(1.0f32 * light_color))?;
+    // flatcolor_shader.set_float("point_light.attn_linear", 0.09)?;
+    // flatcolor_shader.set_float("point_light.attn_quadratic", 0.032)?;
 
     // Set default material
-    flatcolor_shader.set_vec3("material.diffuse", &glm::vec3(0.2, 0.2, 0.2))?;
+    // flatcolor_shader.set_vec3("material.diffuse", &glm::vec3(0.2, 0.2, 0.2))?;
     flatcolor_shader.set_vec3("material.specular", &glm::vec3(0.4, 0.4, 0.4))?;
-    flatcolor_shader.set_float("material.shininess", 32.0)?;
+    flatcolor_shader.set_float("material.shininess", 10.0)?;
 
-    // let scene = Scene::from("assets/models/culdesac/culdesac.glb")?;
+    let scene = Scene::from("assets/models/culdesac/culdesac.glb")?;
+    // let scene = Scene::from("assets/models/tmp/Box/glTF/Box.gltf")?;
 
     let skybox = Skybox::from([
         "assets/textures/skybox/right.jpg",
@@ -107,10 +116,6 @@ fn run() -> Result<(), Box<dyn Error>> {
         "assets/textures/skybox/front.jpg",
         "assets/textures/skybox/back.jpg",
     ])?;
-
-    println!("Checking error...");
-    gl_check_error!();
-    println!("Done...");
 
     // Main loop
     let mut frame_start = SystemTime::now();
@@ -157,19 +162,26 @@ fn run() -> Result<(), Box<dyn Error>> {
         let proj = camera.get_projection_matrix();
         let view = camera.get_view_matrix();
 
-        // Light
-        let p = light_pos;
-        let light_pos = glm::vec4_to_vec3(&(view * glm::vec4(p.x, p.y, p.z, 1.0)));
-        flatcolor_shader.set_used();
-        flatcolor_shader.set_vec3("point_light.position", &light_pos)?;
+        // // Light
+        // let p = light_direction;
+        // let light_pos = glm::vec4_to_vec3(&(view * glm::vec4(p.x, p.y, p.z, 1.0)));
+        // flatcolor_shader.set_used();
+        // flatcolor_shader.set_vec3("point_light.position", &light_pos)?;
 
         // Draw
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
-        skybox.draw(&proj, &view)?; // draw skybox last
+        flatcolor_shader.set_used();
+        flatcolor_shader.set_mat4("proj", &proj)?;
+        flatcolor_shader.set_mat4("view", &view)?;
+        let light_direction = glm::vec4_to_vec3(
+            &(view * glm::vec4(light_direction.x, light_direction.y, light_direction.z, 0.0)),
+        );
+        flatcolor_shader.set_vec3("directional_light.direction", &light_direction)?;
+        scene.draw(&flatcolor_shader)?;
 
-        // scene.draw(&proj, &view, &flatcolor_shader)?;
+        skybox.draw(&proj, &view)?; // draw skybox last
 
         window.gl_swap_window();
 
