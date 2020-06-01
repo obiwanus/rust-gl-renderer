@@ -2,6 +2,12 @@ TODO:
 
 DONE:
 
+01/06/2020
+- Refactored the main loop, made a separate method for update and render
+
+31/05/2020
+- Got rid of SDL, using winit/glutin. Works perfectly
+
 27/05/2020
 - Rendered the model with some sunset colors
 

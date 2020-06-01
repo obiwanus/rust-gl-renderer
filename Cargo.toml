@@ -5,7 +5,7 @@ authors = ["Ivan Ivanov <ivan@ivanovs.info>"]
 edition = "2018"
 
 [dependencies]
-sdl2 = { version = "0.34.0", features = ["bundled"] }
+glutin = "0.24.0"
 gl = { path = "lib/gl" }
 nalgebra-glm = "0.7.0"
 stb_image = "0.2.2"

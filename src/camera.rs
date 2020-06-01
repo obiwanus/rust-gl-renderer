@@ -90,7 +90,7 @@ impl Camera {
         self.zoom = clamp(self.zoom, ZOOM_MIN, ZOOM_MAX);
     }
 
-    pub fn rotate(&mut self, yaw_delta: i32, pitch_delta: i32) {
+    pub fn rotate(&mut self, yaw_delta: f64, pitch_delta: f64) {
         // Adjust Euler angles
         self.pitch -= pitch_delta as f32 * self.sensitivity;
         self.pitch = clamp(self.pitch, PITCH_MIN, PITCH_MAX);
