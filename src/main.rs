@@ -90,7 +90,7 @@ impl Game {
             .with_resizable(false)
             .with_fullscreen(Some(Fullscreen::Borderless(event_loop.primary_monitor())))
             .with_inner_size(glutin::dpi::LogicalSize::new(1366.0, 768.0));
-        let gl_request = GlRequest::Specific(Api::OpenGl, (4, 1));
+        let gl_request = GlRequest::Specific(Api::OpenGl, (3, 3));
         let gl_profile = GlProfile::Core;
         let windowed_context = glutin::ContextBuilder::new()
             .with_gl(gl_request)
