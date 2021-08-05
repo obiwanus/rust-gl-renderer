@@ -2,6 +2,9 @@
     "folders": [
         {
             "path": "."
+        },
+        {
+            "path": "..\\prototyping-engine"
         }
     ],
     "settings": {

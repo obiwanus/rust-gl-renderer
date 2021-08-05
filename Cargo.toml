@@ -5,12 +5,13 @@ authors = ["Ivan Ivanov <ivan@ivanovs.info>"]
 edition = "2018"
 
 [dependencies]
-glutin = "0.24.0"
 gl = { path = "lib/gl" }
-nalgebra-glm = "0.7.0"
-stb_image = "0.2.2"
+glutin = "0.27.0"
+stb_image = "0.2.3"
 thiserror = "1.0.19"
-gltf = "0.15.2"
+gltf = "0.16.0"
+glam = "0.17.3"
+nalgebra-glm = ""
 
 [features]
 default = []
