@@ -1,5 +1,8 @@
-use glm::{Mat4, Vec3};
+#![allow(dead_code)]
+
 use std::f32::consts::PI;
+
+use glam::{const_vec3, Mat4, Vec2, Vec3};
 
 const FOV_MIN: f32 = 0.01 * PI;
 const FOV_MAX: f32 = 0.5 * PI;
@@ -11,6 +14,8 @@ const ZOOM_DEFAULT: f32 = 30.0;
 const PITCH_MIN: f32 = -0.49 * PI;
 const PITCH_MAX: f32 = 0.49 * PI;
 
+const TRUE_UP: Vec3 = const_vec3!([0.0, 1.0, 0.0]); // Y UP
+
 pub enum Movement {
     Forward,
     Backward,
@@ -18,9 +23,9 @@ pub enum Movement {
     Right,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Camera {
-    pub position: Vec3,
+    position: Vec3,
     direction: Vec3,
     up: Vec3,
     right: Vec3,
@@ -31,45 +36,76 @@ pub struct Camera {
     movement_speed: f32,
     sensitivity: f32,
     zoom: f32,
-    pub aspect_ratio: f32,
-    locked: bool, // Whether to allow flying
+    screen_dimensions: Vec2,
+    aspect_ratio: f32,
+    v_fov: f32,
+    locked: bool, // whether to allow flying
+
+    pub speed_boost: bool,
 }
 
 impl Camera {
-    pub fn new() -> Self {
+    pub fn new(position: Vec3, target: Vec3, screen_width: u32, screen_height: u32) -> Self {
+        let screen_dimensions = Vec2::new(screen_width as f32, screen_height as f32);
+        let aspect_ratio = screen_dimensions.x / screen_dimensions.y;
+        let zoom = ZOOM_DEFAULT;
+        let v_fov = Camera::calculate_vert_fov(zoom);
+
+        // Camera basis
+        let direction = (target - position).normalize();
+        let right = direction.cross(TRUE_UP).normalize();
+        let up = right.cross(direction).normalize();
+
+        // Euler angles
+        let (pitch, yaw) = {
+            // @hacky: maybe could be done simpler without special cases
+            let (x, y, z) = (direction.x, direction.y, direction.z);
+            let pitch = y.asin();
+            let pitch = pitch.clamp(PITCH_MIN, PITCH_MAX);
+            let yaw = if z < 0.0 {
+                (-x / z).atan()
+            } else if z > 0.0 {
+                (-x / z).atan() + std::f32::consts::PI
+            } else {
+                // z == 0
+                if x > 0.0 {
+                    std::f32::consts::PI / 2.0
+                } else {
+                    -std::f32::consts::PI / 2.0
+                }
+            };
+            (pitch, yaw)
+        };
+
         Camera {
-            position: glm::vec3(0.0, 0.0, 0.0),
-            direction: glm::vec3(0.0, 0.0, -1.0),
-            up: glm::vec3(0.0, 1.0, 0.0),
-            right: glm::vec3(1.0, 0.0, 0.0),
-
-            yaw: 0.0,
-            pitch: 0.0,
-
-            movement_speed: 4.0,
+            position,
+            up,
+            right,
+            movement_speed: 10.0,
+            speed_boost: false,
             sensitivity: 0.0015,
-            zoom: ZOOM_DEFAULT,
-            aspect_ratio: 4.0 / 3.0,
+            zoom,
+            v_fov,
+            screen_dimensions,
+            aspect_ratio,
             locked: false,
+            pitch,
+            yaw,
+            direction,
         }
-    }
-
-    /// Point the camera at the target.
-    /// Sets direction, right and Euler angles accordingly
-    pub fn look_at(&mut self, target: Vec3) {
-        self.direction = glm::normalize(&(target - self.position));
-        let (x, y, z) = (self.direction.x, self.direction.y, self.direction.z);
-        self.pitch = y.asin();
-        self.pitch = clamp(self.pitch, PITCH_MIN, PITCH_MAX);
-        self.yaw = (z / x).atan();
-        self.right = self.recalculate_right();
     }
 
     /// Move the camera
     pub fn go(&mut self, direction: Movement, delta_time: f32) {
-        let speed = self.movement_speed * delta_time;
+        let speed = if self.speed_boost {
+            self.movement_speed * 2.0
+        } else {
+            self.movement_speed
+        };
+        let speed = speed * delta_time;
+
         let projected_direction = if self.locked {
-            glm::vec3(self.direction.x, 0.0, self.direction.z)
+            Vec3::new(self.direction.x, 0.0, self.direction.z)
         } else {
             self.direction
         };
@@ -87,49 +123,47 @@ impl Camera {
     /// 100.0 corresponds to FOV_MIN.
     pub fn adjust_zoom(&mut self, delta: i32) {
         self.zoom += delta as f32;
-        self.zoom = clamp(self.zoom, ZOOM_MIN, ZOOM_MAX);
+        self.zoom = self.zoom.clamp(ZOOM_MIN, ZOOM_MAX);
     }
 
-    pub fn rotate(&mut self, yaw_delta: f64, pitch_delta: f64) {
+    pub fn rotate(&mut self, yaw_delta: f32, pitch_delta: f32) {
         // Adjust Euler angles
-        self.pitch -= pitch_delta as f32 * self.sensitivity;
-        self.pitch = clamp(self.pitch, PITCH_MIN, PITCH_MAX);
-        self.yaw += yaw_delta as f32 * self.sensitivity;
+        self.pitch -= pitch_delta * self.sensitivity;
+        self.pitch = self.pitch.clamp(PITCH_MIN, PITCH_MAX);
+        self.yaw += yaw_delta * self.sensitivity;
 
         // Recalculate direction
-        self.direction = glm::normalize(&glm::vec3(
-            self.pitch.cos() * self.yaw.cos(),
-            self.pitch.sin(),
+        self.direction = Vec3::new(
             self.pitch.cos() * self.yaw.sin(),
-        ));
-        self.right = self.recalculate_right();
+            self.pitch.sin(),
+            self.pitch.cos() * (-self.yaw.cos()),
+        )
+        .normalize();
+        self.right = self.direction.cross(TRUE_UP).normalize();
+        self.up = self.right.cross(self.direction).normalize();
     }
 
-    fn recalculate_right(&self) -> Vec3 {
-        glm::normalize(&glm::cross(&self.direction, &self.up))
-    }
-
-    /// Calculate vertical FOV based on zoom level
-    pub fn fov(&self) -> f32 {
-        let t = (self.zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN);
+    pub fn calculate_vert_fov(zoom: f32) -> f32 {
+        let t = (zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN);
         (1.0 - t) * FOV_MAX + t * FOV_MIN
     }
 
     pub fn get_view_matrix(&self) -> Mat4 {
-        glm::look_at(&self.position, &(self.position + self.direction), &self.up)
+        // Camera never turns upside down so true up is fixed
+        Mat4::look_at_rh(self.position, self.position + self.direction, TRUE_UP)
     }
 
+    // // For Vulkan:
+    // pub fn get_projection_matrix(&self) -> Mat4 {
+    //     let mut proj = Mat4::perspective_rh(self.fov(), self.aspect_ratio, 0.5, 400.0);
+    //     proj.y_axis.y *= -1.0; // account for the Vulkan coordinate system
+    //     proj
+    // }
+
+    // For OpenGL:
     pub fn get_projection_matrix(&self) -> Mat4 {
-        glm::perspective(self.aspect_ratio, self.fov(), 0.1, 100.0)
+        // Mat4::perspective_rh(self.v_fov, self.aspect_ratio, 0.5, 400.0)
+        // @explore: try setting different clip planes every frame based on z-buffer (glReadPixels)?
+        Mat4::perspective_infinite_rh(self.v_fov, self.aspect_ratio, 0.5)
     }
-}
-
-fn clamp(value: f32, min: f32, max: f32) -> f32 {
-    if value < min {
-        return min;
-    }
-    if value > max {
-        return max;
-    }
-    value
 }

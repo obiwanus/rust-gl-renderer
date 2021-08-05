@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use gl::types::*;
-use glm::Mat4x4;
+use glam::Mat4;
 use gltf::accessor::DataType;
 use gltf::Semantic::*;
 
@@ -41,7 +41,7 @@ impl Scene {
         let mut nodes: Vec<Node> = document.nodes().map(Node::from_gltf).collect();
 
         // Store final transforms in each node
-        let parent_transform = glm::identity();
+        let parent_transform = Mat4::IDENTITY;
         let scene = document.default_scene().unwrap();
         for gltf_node in scene.nodes() {
             recursive_update_transforms(gltf_node, &mut nodes, &parent_transform);
@@ -70,11 +70,11 @@ impl Scene {
 }
 
 /// Update the node and its children with the transform and store the final transforms
-fn recursive_update_transforms(gltf_node: gltf::Node, nodes: &mut [Node], transform: &Mat4x4) {
+fn recursive_update_transforms(gltf_node: gltf::Node, nodes: &mut [Node], transform: &Mat4) {
     let node = &mut nodes[gltf_node.index()];
 
     // Apply parent transform
-    let final_transform = transform * node.transform;
+    let final_transform = *transform * node.transform;
     node.transform = final_transform;
 
     for child in gltf_node.children() {
@@ -90,7 +90,7 @@ struct Node {
     children_ids: Vec<usize>,
 
     /// The final transform matrix (including parent transforms)
-    transform: Mat4x4,
+    transform: Mat4,
 }
 
 impl Node {
@@ -98,7 +98,7 @@ impl Node {
         Node {
             mesh_id: node.mesh().map(|m| m.index()),
             children_ids: node.children().map(|n| n.index()).collect(),
-            transform: Mat4x4::from(node.transform().matrix()),
+            transform: Mat4::from_cols_array_2d(&node.transform().matrix()),
         }
     }
 }

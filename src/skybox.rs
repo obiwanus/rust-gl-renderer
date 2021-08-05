@@ -1,5 +1,5 @@
 use gl::types::*;
-use glm::Mat4x4;
+use glam::Mat4;
 use thiserror::Error;
 
 use crate::buffers::{Buffer, VertexArray};
@@ -64,7 +64,7 @@ impl Skybox {
                 gl::TexImage2D(
                     gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32,
                     0,
-                    gl::RGB as GLint,
+                    gl::SRGB as GLint,
                     img.width as GLint,
                     img.height as GLint,
                     0,
@@ -151,7 +151,7 @@ impl Skybox {
         Ok(Skybox { id, shader, vao })
     }
 
-    pub fn draw(&self, proj: &Mat4x4, view: &Mat4x4) -> Result<(), SkyboxError> {
+    pub fn draw(&self, proj: &Mat4, view: &Mat4) -> Result<(), SkyboxError> {
         unsafe {
             gl::DepthFunc(gl::LEQUAL);
         }

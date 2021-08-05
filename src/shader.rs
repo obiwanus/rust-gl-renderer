@@ -3,7 +3,7 @@ use std::fs;
 use std::io;
 
 use gl::types::*;
-use glm::{Mat4, Vec3};
+use glam::{Mat4, Vec3};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -105,7 +105,7 @@ impl Program {
     pub fn set_vec3(&self, name: &str, vec: &Vec3) -> Result<()> {
         let location = self.get_uniform_location(name)?;
         unsafe {
-            gl::Uniform3fv(location, 1, vec.as_ptr());
+            gl::Uniform3fv(location, 1, vec.to_array().as_ptr());
         }
         Ok(())
     }
@@ -123,7 +123,7 @@ impl Program {
     pub fn set_mat4(&self, name: &str, mat: &Mat4) -> Result<()> {
         let location = self.get_uniform_location(name)?;
         unsafe {
-            gl::UniformMatrix4fv(location, 1, gl::FALSE, mat.as_ptr());
+            gl::UniformMatrix4fv(location, 1, gl::FALSE, mat.to_cols_array().as_ptr());
         }
         Ok(())
     }

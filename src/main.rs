@@ -1,7 +1,6 @@
 // ==================================== Crates and modules ========================================
 
 extern crate gl as opengl;
-extern crate nalgebra_glm as glm;
 
 mod utils;
 
@@ -14,7 +13,9 @@ mod texture;
 
 // ==================================== Imports ===================================================
 
+use gl::types::*;
 use std::error::Error;
+use std::ffi::CStr;
 use std::time::Instant;
 
 use glutin::event::{
@@ -25,7 +26,7 @@ use glutin::window::{Fullscreen, WindowBuilder};
 use glutin::{Api, GlProfile, GlRequest};
 use glutin::{PossiblyCurrent, WindowedContext};
 
-use glm::Vec3;
+use glam::{Vec3, Vec4};
 
 // Local imports
 use camera::Camera;
@@ -111,17 +112,27 @@ impl Game {
             gl::Viewport(0, 0, window_size.width as i32, window_size.height as i32);
             gl::ClearColor(0.05, 0.05, 0.05, 1.0);
             gl::Enable(gl::DEPTH_TEST);
+            gl::Enable(gl::FRAMEBUFFER_SRGB);
+
+            #[cfg(not(target_os = "macos"))]
+            {
+                // MacOS deprecated OpenGL, which is stuck at 4.1 so no debug callbacks here :(
+                gl::Enable(gl::DEBUG_OUTPUT);
+                gl::DebugMessageCallback(Some(debug_callback), std::ptr::null());
+            }
         }
 
         // Set up camera
-        let mut camera = Camera::new();
-        camera.aspect_ratio = (window_size.width as f32) / (window_size.height as f32);
-        camera.position = glm::vec3(0.0, 0.5, -23.0);
-        camera.look_at(glm::vec3(0.0, 0.5, 0.0));
+        let camera = Camera::new(
+            Vec3::new(0.0, 0.5, -23.0),
+            Vec3::new(0.0, 0.5, 0.0),
+            window_size.width,
+            window_size.height,
+        );
 
         let light = DirectionalLight {
-            color: glm::vec3(1.0, 0.7, 0.7),
-            direction: glm::vec3(0.37f32, -0.56, 0.75),
+            color: Vec3::new(1.0, 0.7, 0.7),
+            direction: Vec3::new(0.37f32, -0.56, 0.75),
         };
 
         // Flat color shader
@@ -137,7 +148,7 @@ impl Game {
         shader.set_vec3("directional_light.specular", &(1.0f32 * light.color))?;
 
         // Set default material
-        shader.set_vec3("material.specular", &glm::vec3(0.4, 0.4, 0.4))?;
+        shader.set_vec3("material.specular", &Vec3::new(0.4, 0.4, 0.4))?;
         shader.set_float("material.shininess", 10.0)?;
 
         let scene = Scene::from("assets/models/culdesac/culdesac.glb")?;
@@ -208,7 +219,7 @@ impl Game {
             Event::DeviceEvent { event, .. } => match event {
                 DeviceEvent::MouseMotion { delta } if self.in_focus => {
                     let (yaw_delta, pitch_delta) = delta;
-                    self.camera.rotate(yaw_delta, pitch_delta);
+                    self.camera.rotate(yaw_delta as f32, pitch_delta as f32);
                 }
                 _ => {}
             },
@@ -248,15 +259,14 @@ impl Game {
         self.shader.set_used();
         self.shader.set_mat4("proj", &proj)?;
         self.shader.set_mat4("view", &view)?;
-        let light_direction = glm::vec4_to_vec3(
-            &(view
-                * glm::vec4(
-                    self.light.direction.x,
-                    self.light.direction.y,
-                    self.light.direction.z,
-                    0.0,
-                )),
-        );
+        let light_direction: Vec3 = (view
+            * Vec4::new(
+                self.light.direction.x,
+                self.light.direction.y,
+                self.light.direction.z,
+                0.0,
+            ))
+        .into();
         self.shader
             .set_vec3("directional_light.direction", &light_direction)?;
         self.scene.draw(&self.shader)?;
@@ -274,4 +284,22 @@ impl Game {
 
         Ok(())
     }
+}
+
+extern "system" fn debug_callback(
+    source: GLenum,
+    gltype: GLenum,
+    id: GLuint,
+    severity: GLenum,
+    length: GLsizei,
+    message: *const GLchar,
+    user_param: *mut std::os::raw::c_void,
+) {
+    let msg_type = if gltype == gl::DEBUG_TYPE_ERROR {
+        "** GL ERROR ** "
+    } else {
+        "** GL DEBUG **"
+    };
+    let msg = unsafe { CStr::from_ptr(message) };
+    eprintln!("{} {}", msg_type, msg.to_str().unwrap().to_owned());
 }
