@@ -1,8 +1,11 @@
 TODO:
 
-- Replace nalgebra
+
 
 DONE:
+
+6 Aug 2021
+- Replace nalgebra
 
 01/06/2020
 - Refactored the main loop, made a separate method for update and render

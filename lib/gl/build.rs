@@ -23,7 +23,7 @@ fn main() {
 
     Registry::new(
         Api::Gl,
-        (4, 3),
+        (4, 5),
         Profile::Core,
         Fallbacks::All,
         ["GL_NV_command_list"],
